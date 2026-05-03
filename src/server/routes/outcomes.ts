@@ -40,15 +40,23 @@ export function createOutcomesRouter(
       end_date: string;
     }>();
     const projectKey = c.req.param("projectKey");
+    const { randomUUID } = await import("crypto");
     const okr = await store.createOKR({
-      project_key:  projectKey,
-      objective:    body.objective,
-      key_results:  body.key_results.map((kr) =>
-        store.newKeyResult({ okr_id: "", description: kr.description, target: kr.target, current: 0, unit: kr.unit, direction: kr.direction ?? "up" }),
-      ),
-      epic_keys:    [],
-      start_date:   body.start_date,
-      end_date:     body.end_date,
+      project_key:   projectKey,
+      objective:     body.objective,
+      key_results:   body.key_results.map((kr) => ({
+        id:          randomUUID(),
+        okr_id:      "",
+        description: kr.description,
+        target:      kr.target,
+        current:     0,
+        unit:        kr.unit,
+        direction:   kr.direction ?? ("up" as const),
+        updated_at:  new Date().toISOString(),
+      })),
+      epic_keys:  [],
+      start_date: body.start_date,
+      end_date:   body.end_date,
     });
     return c.json(ok(okr), 201);
   });
@@ -116,9 +124,7 @@ export function createOutcomesRouter(
       flag_key:     body.flag_key,
       okr_id:       body.okr_id,
       kr_id:        body.kr_id,
-    });
-    return c.json(ok({ queued: true }));
+    });    return c.json(ok({ queued: true }), 202);
   });
-
   return router;
 }

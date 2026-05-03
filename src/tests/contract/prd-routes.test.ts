@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
-import { createPRDRouter } from "../../../server/routes/prd.js";
+import { createPRDRouter } from "../../server/routes/prd.js";
 import type { DraftStore } from "../../../stores/draft-store.js";
 import type { PRDWriter } from "../../../services/prd-writer.js";
 import type { PRDDraft } from "../../../types/prd.js";

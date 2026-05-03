@@ -26,24 +26,47 @@ export class DraftStore {
     return this.db;
   }
 
+  /** Serialize complex nested fields to JSON strings for LanceDB storage */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private serialize(draft: PRDDraft): Record<string, any> {
+    return {
+      ...draft,
+      content: JSON.stringify(draft.content),
+      // LanceDB cannot infer schema for null values — store as empty string sentinel
+      confluence_url: draft.confluence_url ?? "",
+      epic_key: draft.epic_key ?? "",
+    };
+  }
+
+  private deserialize(row: Record<string, unknown>): PRDDraft {
+    return {
+      ...(row as unknown as PRDDraft),
+      content: typeof row.content === "string" ? JSON.parse(row.content) : row.content,
+      confluence_url: row.confluence_url === "" ? null : (row.confluence_url as string | null),
+      epic_key: row.epic_key === "" ? null : (row.epic_key as string | null),
+    };
+  }
+
   private async all(): Promise<PRDDraft[]> {
     try {
       const db = await this.getDb();
       const names: string[] = await db.tableNames();
       if (!names.includes("prd_drafts")) return [];
       const t = await db.openTable("prd_drafts");
-      return (await t.query().toArray()) as PRDDraft[];
+      const rows = await t.query().toArray() as Record<string, unknown>[];
+      return rows.map(r => this.deserialize(r));
     } catch { return []; }
   }
 
   private async insert(draft: PRDDraft): Promise<void> {
+    const row = this.serialize(draft);
     const db = await this.getDb();
     const names: string[] = await db.tableNames();
     if (!names.includes("prd_drafts")) {
-      await db.createTable("prd_drafts", [draft]);
+      await db.createTable("prd_drafts", [row]);
     } else {
       const t = await db.openTable("prd_drafts");
-      await t.add([draft]);
+      await t.add([row]);
     }
   }
 

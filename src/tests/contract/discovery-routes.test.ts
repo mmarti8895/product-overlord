@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
-import { createDiscoveryRouter } from "../../../server/routes/discovery.js";
+import { createDiscoveryRouter } from "../../server/routes/discovery.js";
 import type { TriageQueue } from "../../../stores/triage-queue.js";
 import type { ThemeClusterer } from "../../../services/theme-clusterer.js";
 import type { OpportunitySizer } from "../../../services/opportunity-sizer.js";

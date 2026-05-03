@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
-import { createOutcomesRouter } from "../../../server/routes/outcomes.js";
+import { createOutcomesRouter } from "../../server/routes/outcomes.js";
 import type { OKRStore } from "../../../stores/okr-store.js";
 import type { OutcomeSnapshotBuilder } from "../../../services/outcome-snapshot-builder.js";
 import type { WebhookMetricsAdapter } from "../../../adapters/metrics/webhook.js";
@@ -18,12 +18,11 @@ function makeOKR(id = "okr-1"): OKR {
     project_key: "PROJ",
     objective: "Improve retention",
     key_results: [
-      { id: "kr-1", description: "MAU +10%", target: 10, current: 3, unit: "%", direction: "up", source: "manual" },
+      { id: "kr-1", okr_id: id, description: "MAU +10%", target: 10, current: 3, unit: "%", direction: "up", updated_at: new Date().toISOString() },
     ],
-    linked_epic_keys: [],
+    epic_keys: [],
     start_date: "2025-01-01",
     end_date: "2025-03-31",
-    status: "active",
     created_at: new Date().toISOString(),
   };
 }
@@ -47,7 +46,7 @@ function makeStore(): OKRStore {
     listOKRs: vi.fn().mockResolvedValue([makeOKR()]),
     getOKR: vi.fn().mockImplementation(async (id: string) => id === "okr-1" ? makeOKR() : null),
     createOKR: vi.fn().mockResolvedValue(makeOKR("okr-2")),
-    linkEpicToOKR: vi.fn().mockResolvedValue({ ...makeOKR(), linked_epic_keys: ["PROJ-10"] }),
+    linkEpicToOKR: vi.fn().mockResolvedValue({ ...makeOKR(), epic_keys: ["PROJ-10"] }),
     latestSnapshot: vi.fn().mockResolvedValue(makeSnapshot()),
     saveSnapshot: vi.fn().mockResolvedValue(undefined),
     patchSnapshotNotes: vi.fn().mockResolvedValue({ ...makeSnapshot(), reflection_notes: "Great work", status: "reviewed" }),

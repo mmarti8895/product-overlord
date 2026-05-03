@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
-import { createRoadmapRouter } from "../../../server/routes/roadmap.js";
+import { createRoadmapRouter } from "../../server/routes/roadmap.js";
 import type { RoadmapStore } from "../../../stores/roadmap-store.js";
 import type { RoadmapSnapshot, Epic, Milestone, DependencyEdge } from "../../../types/roadmap.js";
 
@@ -18,15 +18,14 @@ function makeEpic(overrides: Partial<Epic> = {}): Epic {
     status: "In Progress",
     health_score: 80,
     health_label: "healthy",
-    child_count: 3,
-    child_done_count: 1,
+    child_keys: [],
     linked_epic_keys: [],
-    milestones: [],
+    milestone_id: null,
     rice_score: null,
     ice_score: null,
-    estimated_by: "system",
     description: null,
-    labels: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -50,7 +49,7 @@ function makeStore(snap: RoadmapSnapshot | undefined): RoadmapStore {
     refresh: vi.fn().mockResolvedValue(snap ?? makeSnapshot()),
     getMilestones: vi.fn(() => snap?.milestones ?? []),
     updateEpicRICE: vi.fn().mockImplementation(async (epicKey: string, overrides: object) => {
-      const epic = snap?.epics.find(e => e.key === epicKey);
+      const epic = snap?.epics.find((e: Epic) => e.key === epicKey);
       if (!epic) return null;
       return { ...epic, rice_score: { ...overrides, score: 1000, estimated_by: "human" } };
     }),
@@ -151,7 +150,7 @@ describe("Roadmap API contract tests", () => {
 
   describe("GET /api/roadmap/:projectKey/milestones", () => {
     it("returns milestones", async () => {
-      const ms: Milestone = { id: "v1", name: "v1.0", target_date: "2025-06-01", epics: [] };
+      const ms: Milestone = { id: "v1", name: "v1.0", target_date: "2025-06-01", quarter: "Q2-2025", project_key: "PROJ", epic_keys: [], status: "planned" };
       const app = makeApp(makeStore(makeSnapshot({ milestones: [ms] })));
       const res = await app.request("/api/roadmap/PROJ/milestones");
       expect(res.status).toBe(200);
@@ -170,10 +169,10 @@ describe("Roadmap API contract tests", () => {
       const body = await res.json() as { ok: boolean; data: DependencyEdge[] };
       expect(body.data).toHaveLength(1);
       // cycle warning is in the snapshot itself, accessible via GET /:projectKey
-      const snap2 = makeStore(snap);
-      const body2 = await makeApp(snap2).request("/api/roadmap/PROJ");
+      const snapStore = makeStore(snap);
+      const body2 = await makeApp(snapStore).request("/api/roadmap/PROJ");
       const snap3 = await body2.json() as { ok: boolean; data: RoadmapSnapshot };
-      expect(snap3.data.warnings.some(w => w.startsWith("cycle:"))).toBe(true);
+      expect(snap3.data.warnings.some((w: string) => w.startsWith("cycle:"))).toBe(true);
     });
   });
 });

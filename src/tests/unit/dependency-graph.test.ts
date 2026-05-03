@@ -19,15 +19,14 @@ function makeEpic(key: string, projectKey: string, linked: string[] = []): Epic 
     status: "In Progress",
     health_score: 80,
     health_label: "healthy",
-    child_count: 0,
-    child_done_count: 0,
+    child_keys: [],
     linked_epic_keys: linked,
-    milestones: [],
+    milestone_id: null,
     rice_score: null,
     ice_score: null,
-    estimated_by: "system",
     description: null,
-    labels: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 }
 

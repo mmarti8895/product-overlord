@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
-import { createPortfolioRouter } from "../../../server/routes/portfolio.js";
+import { createPortfolioRouter } from "../../server/routes/portfolio.js";
 import type { PortfolioStore } from "../../../stores/portfolio-store.js";
 import type { PortfolioAggregator } from "../../../services/portfolio-aggregator.js";
 import type { PortfolioDigestWriter } from "../../../services/portfolio-digest.js";
