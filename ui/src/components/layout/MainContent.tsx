@@ -49,7 +49,15 @@ function PageShell({ children }: { children: React.ReactNode }) {
       exit="exit"
       style={{ flex: 1, overflow: "auto", padding: 24 }}
     >
-      {children}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1120,
+          margin: "0 auto",
+        }}
+      >
+        {children}
+      </div>
     </motion.div>
   );
 }
