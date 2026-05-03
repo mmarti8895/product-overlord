@@ -41,9 +41,9 @@ export interface EvidenceBundle {
   /** ID of the comment draft produced (if any) */
   comment_draft_id: string | null;
   /** LLM call traces emitted during this run (empty when degraded) */
-  llm_traces: LLMTrace[];
+  llm_traces?: LLMTrace[];
   /** KB chunks retrieved for RAG context during this run */
-  retrieved_chunks: RetrievedChunk[];
+  retrieved_chunks?: RetrievedChunk[];
 }
 
 // ---------------------------------------------------------------------------

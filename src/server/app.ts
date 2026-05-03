@@ -34,6 +34,27 @@ import { SprintMonitor } from "../services/sprint-monitor.js";
 import { createSprintRouter } from "./routes/sprint.js";
 import { RoadmapStore } from "../stores/roadmap-store.js";
 import { createRoadmapRouter } from "./routes/roadmap.js";
+import { TriageQueue } from "../stores/triage-queue.js";
+import { ThemeClusterer } from "../services/theme-clusterer.js";
+import { OpportunitySizer } from "../services/opportunity-sizer.js";
+import { WebhookFeedbackAdapter } from "../adapters/feedback/webhook.js";
+import { createDiscoveryRouter } from "./routes/discovery.js";
+import { OKRStore } from "../stores/okr-store.js";
+import { ReflectionAgent } from "../services/reflection-agent.js";
+import { OutcomeSnapshotBuilder } from "../services/outcome-snapshot-builder.js";
+import { WebhookMetricsAdapter } from "../adapters/metrics/webhook.js";
+import { createOutcomesRouter } from "./routes/outcomes.js";
+import { PortfolioStore } from "../stores/portfolio-store.js";
+import { CrossProjectDependencyGraph } from "../services/cross-project-deps.js";
+import { CapacityHeatmapBuilder } from "../services/capacity-heatmap.js";
+import { PortfolioAggregator } from "../services/portfolio-aggregator.js";
+import { PortfolioDigestWriter } from "../services/portfolio-digest.js";
+import { createPortfolioRouter } from "./routes/portfolio.js";
+import { DraftStore } from "../stores/draft-store.js";
+import { KBStore } from "../knowledge/store.js";
+import { PRDWriter } from "../services/prd-writer.js";
+import { ConfluencePublisher } from "../services/confluence-publisher.js";
+import { createPRDRouter } from "./routes/prd.js";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for connection providers
@@ -624,6 +645,49 @@ export function createApp(config: ServerConfig): Hono {
     });
     const roadmapStore = new RoadmapStore(jiraAgile, llmAdapter, {}, async () => []);
     app.route("/api/roadmap", createRoadmapRouter(roadmapStore));
+
+    // ── Discovery-intake (task 3.2) ──────────────────────────────────────
+    const storePath = process.env.LANCEDB_PATH ?? "./data/lancedb";
+    const webhookFeedback = new WebhookFeedbackAdapter();
+    const triageQueue     = new TriageQueue(storePath, jiraAgile);
+    const themeClusterer  = new ThemeClusterer(llmAdapter);
+    const opportunitySizer = new OpportunitySizer(llmAdapter);
+    app.route("/api/discovery", createDiscoveryRouter(
+      triageQueue, themeClusterer, opportunitySizer, [webhookFeedback], webhookFeedback,
+    ));
+
+    // ── Outcome-tracking (task 3.3) ──────────────────────────────────────
+    const okrStore          = new OKRStore(storePath);
+    const reflectionAgent   = new ReflectionAgent(llmAdapter);
+    const webhookMetrics    = new WebhookMetricsAdapter();
+    const snapshotBuilder   = new OutcomeSnapshotBuilder(okrStore, [webhookMetrics], reflectionAgent);
+    app.route("/api/outcomes", createOutcomesRouter(okrStore, snapshotBuilder, webhookMetrics));
+
+    // ── Portfolio-management (task 3.4) ──────────────────────────────────
+    const portfolioStore    = new PortfolioStore(storePath);
+    const crossProjectDeps  = new CrossProjectDependencyGraph(roadmapStore);
+    const capacityHeatmap   = new CapacityHeatmapBuilder(roadmapStore, config.sprint?.sprintLengthDays ?? 14);
+    const portfolioAgg      = new PortfolioAggregator(portfolioStore, roadmapStore, crossProjectDeps, capacityHeatmap);
+    const digestWriter      = new PortfolioDigestWriter(llmAdapter, {
+      slackWebhookUrl:      process.env.SLACK_WEBHOOK_URL,
+      confluenceBaseUrl:    config.confluenceBaseUrl,
+      confluenceToken:      config.confluenceToken,
+      confluenceSpaceKey:   process.env.CONFLUENCE_SPACE_KEY,
+    });
+    app.route("/api/portfolio", createPortfolioRouter(portfolioStore, portfolioAgg, digestWriter));
+
+    // ── PRD-generation (task 3.5) ─────────────────────────────────────────
+    const draftStore        = new DraftStore(storePath);
+    const kbStore           = new KBStore(storePath);
+    const prdWriter         = new PRDWriter(draftStore, kbStore, llmAdapter);
+    const confluencePublisher = config.confluenceBaseUrl && config.confluenceToken
+      ? new ConfluencePublisher({
+          baseUrl:  config.confluenceBaseUrl,
+          token:    config.confluenceToken,
+          spaceKey: process.env.CONFLUENCE_SPACE_KEY ?? "PROD",
+        })
+      : null;
+    app.route("/api/prd", createPRDRouter(draftStore, prdWriter, confluencePublisher));
   } else {
     app.get("/api/sprint/*", (c) =>
       c.json({ ok: false, error: { code: "JIRA_NOT_CONFIGURED", message: "Jira integration is not enabled" } }, 503)

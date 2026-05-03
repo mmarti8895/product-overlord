@@ -69,6 +69,11 @@ const ServerEnvSchema = z.object({
     .string()
     .default("")
     .transform((v) => v.split(",").map((s) => s.trim()).filter(Boolean)),
+  SPRINT_LENGTH_DAYS: z.coerce.number().default(14),
+
+  // Confluence
+  CONFLUENCE_BASE_URL: z.string().url().optional(),
+  CONFLUENCE_TOKEN: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -79,6 +84,7 @@ export interface SprintConfig {
   pollIntervalMs: number;
   doneStatuses: string[];
   boardIds: string[];
+  sprintLengthDays: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,11 +131,16 @@ export interface ServerConfig {
   // UI developer endpoints toggle
   uiDevEndpoints: boolean;
 
+  // Confluence
+  confluenceBaseUrl: string | undefined;
+  confluenceToken: string | undefined;
+
   // Sprint monitoring
   sprint: {
     pollIntervalMs: number;
     doneStatuses: string[];
     boardIds: string[];
+    sprintLengthDays: number;
   };
 }
 
@@ -201,10 +212,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       maxSizeGb: e.KB_MAX_SIZE_GB,
     },
     uiDevEndpoints: e.UI_DEV_ENDPOINTS,
+    confluenceBaseUrl: e.CONFLUENCE_BASE_URL,
+    confluenceToken:   e.CONFLUENCE_TOKEN,
     sprint: {
       pollIntervalMs: e.SPRINT_POLL_INTERVAL_MS,
-      doneStatuses: e.SPRINT_DONE_STATUSES,
-      boardIds: e.SPRINT_BOARD_IDS,
+      doneStatuses:   e.SPRINT_DONE_STATUSES,
+      boardIds:       e.SPRINT_BOARD_IDS,
+      sprintLengthDays: e.SPRINT_LENGTH_DAYS,
     },
   };
 }

@@ -346,6 +346,42 @@ export class JiraAgileRestAdapter {
   }
 
   // -------------------------------------------------------------------------
+  // createStory — creates a Story issue in the given project
+  // -------------------------------------------------------------------------
+
+  async createStory(
+    projectKey: string,
+    opts: { summary: string; description: string; labels?: string[] },
+  ): Promise<string> {
+    const start = Date.now();
+    let statusCode: number | undefined;
+    try {
+      const body = {
+        fields: {
+          project: { key: projectKey },
+          summary: opts.summary,
+          description: opts.description,
+          issuetype: { name: "Story" },
+          labels: opts.labels ?? [],
+        },
+      };
+      const resp = await fetch(`${this.baseUrl}/rest/api/3/issue`, {
+        method: "POST",
+        headers: this.headers,
+        body: JSON.stringify(body),
+      });
+      statusCode = resp.status;
+      if (!resp.ok) throw new Error(`Jira createStory HTTP ${resp.status}`);
+      const data = (await resp.json()) as { key: string };
+      this._trace("createStory", statusCode, Date.now() - start, 0);
+      return data.key;
+    } catch (err) {
+      this._trace("createStory", statusCode, Date.now() - start, 0, String(err));
+      throw err;
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Internal helpers
   // -------------------------------------------------------------------------
 

@@ -2,7 +2,7 @@
  * Knowledge Base — shared types
  */
 
-export type SourceType = "kt" | "code";
+export type SourceType = "kt" | "code" | "feedback";
 export type FileFormat = "pdf" | "markdown" | "text" | "html";
 
 export interface KBChunk {

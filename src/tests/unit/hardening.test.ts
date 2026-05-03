@@ -173,7 +173,9 @@ describe("4.3 profile_source: default logged when no project profile exists", ()
       comments: [],
       board_id: null,
       sprint_id: null,
-      raw_fields: {},
+      epic_key: null,
+    fix_versions: [],
+    raw_fields: {},
     };
 
     scoreTicket({ ticket, profile, profileSource: source });

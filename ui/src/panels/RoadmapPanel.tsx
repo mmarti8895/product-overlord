@@ -352,12 +352,14 @@ interface GraphNode {
   label: string;
   health: Epic["health_label"];
   val: number;
+  [key: string]: unknown;
 }
 interface GraphLink {
   source: string;
   target: string;
   cross_team: boolean;
   type: string;
+  [key: string]: unknown;
 }
 
 function DependencyGraphView({
@@ -418,8 +420,8 @@ function DependencyGraphView({
           width={780}
           height={460}
           backgroundColor="transparent"
-          onNodeClick={(node: GraphNode) => onNodeClick((node as GraphNode).id)}
-          nodeCanvasObject={(node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          onNodeClick={(node) => onNodeClick((node as GraphNode).id)}
+          nodeCanvasObject={(node, ctx: CanvasRenderingContext2D, globalScale: number) => {
             const n = node as GraphNode & { x?: number; y?: number };
             const x = n.x ?? 0, y = n.y ?? 0;
             const r = 6;

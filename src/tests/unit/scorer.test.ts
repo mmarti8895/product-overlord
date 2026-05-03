@@ -37,6 +37,8 @@ function makeStory(overrides: Partial<CanonicalTicket> = {}): CanonicalTicket {
     comments: [],
     board_id: "10",
     sprint_id: "42",
+    epic_key: null,
+    fix_versions: [],
     raw_fields: {},
     ...overrides,
   };
@@ -64,6 +66,8 @@ function makeBug(overrides: Partial<CanonicalTicket> = {}): CanonicalTicket {
     comments: [],
     board_id: "10",
     sprint_id: null,
+    epic_key: null,
+    fix_versions: [],
     raw_fields: {},
     ...overrides,
   };

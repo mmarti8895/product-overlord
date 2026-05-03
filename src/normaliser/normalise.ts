@@ -69,6 +69,10 @@ export function normaliseTicket(
     comments: resolveComments(f),
     board_id: opts.boardId ?? null,
     sprint_id: opts.sprintId ?? resolveSprintId(f),
+    epic_key:  str((f["epic"] as Record<string, unknown> | undefined)?.["key"]) || null,
+    fix_versions: strArray(
+      ((f["fixVersions"] as { name?: string }[] | undefined) ?? []).map((v) => v.name ?? "")
+    ),
     raw_fields: f,
   };
 }

@@ -44,7 +44,9 @@ function seedEvidenceBundle(verdict: "ready" | "needs_clarification" | "blocked"
       dependencies: [],
       linked_artifacts: [],
       comments: [],
-      raw_fields: {},
+      epic_key: null,
+    fix_versions: [],
+    raw_fields: {},
     },
     scorer_input: { profile_id: "story-default", profile_source: "default" },
     scorer_output: {

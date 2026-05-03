@@ -279,7 +279,7 @@ export default function SprintHealthPanel() {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {/* 4.4f — scope creep badge */}
                 {snap.scope_creep_delta > 0 && (
-                  <GlassBadge variant="needs_clarification" title={`${snap.scope_additions.length} issue(s) added after sprint start`}>
+                  <GlassBadge variant="needs_clarification">
                     📈 Scope creep +{snap.scope_creep_delta} pts ({snap.scope_additions.length} issues)
                   </GlassBadge>
                 )}

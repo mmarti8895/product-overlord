@@ -30,7 +30,9 @@ const BASE_TICKET: CanonicalTicket = {
   comments: [],
   board_id: "1",
   sprint_id: null,
-  raw_fields: {},
+  epic_key: null,
+    fix_versions: [],
+    raw_fields: {},
 };
 
 // ---------------------------------------------------------------------------

@@ -39,6 +39,8 @@ function makeTicket(key = "PROJ-1", overrides: Partial<CanonicalTicket> = {}): C
     comments: [],
     board_id: null,
     sprint_id: null,
+    epic_key: null,
+    fix_versions: [],
     raw_fields: {},
     ...overrides,
   };

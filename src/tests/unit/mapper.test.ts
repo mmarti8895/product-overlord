@@ -35,6 +35,8 @@ function makeTicket(overrides: Partial<CanonicalTicket> = {}): CanonicalTicket {
     comments: [],
     board_id: null,
     sprint_id: null,
+    epic_key: null,
+    fix_versions: [],
     raw_fields: {},
     ...overrides,
   };

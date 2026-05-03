@@ -67,7 +67,7 @@ function makeJira(opts: {
 }
 
 async function getHealth(jira: JiraAgileRestAdapter) {
-  const monitor = new SprintMonitor(jira, { pollIntervalMs: 999_999, doneStatuses: ["Done"], boardIds: ["1"] });
+  const monitor = new SprintMonitor(jira, { pollIntervalMs: 999_999, doneStatuses: ["Done"], boardIds: ["1"], sprintLengthDays: 14 });
   // Patch velocity tracker to return empty (tested separately)
   (monitor as unknown as { velocity: { getVelocity: () => Promise<[]> } }).velocity.getVelocity = vi.fn().mockResolvedValue([]);
   await monitor._pollBoard("1");
