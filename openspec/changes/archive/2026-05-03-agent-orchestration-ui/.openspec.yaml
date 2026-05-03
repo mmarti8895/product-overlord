@@ -1,0 +1,18 @@
+slug: agent-orchestration-ui
+title: "Agent Orchestration & Workflow UI Expansion"
+status: complete
+created: 2026-05-02
+updated: 2026-05-02
+progress: "105/105 tasks complete"
+branch: feat/agent-orchestration-ui
+authors:
+  - copilot
+tags:
+  - ui
+  - agents
+  - orchestration
+  - workflows
+  - tauri
+  - react
+related_changes:
+  - tauri-glass-ui

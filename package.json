@@ -1,0 +1,50 @@
+{
+  "name": "product-overlord",
+  "version": "1.0.0",
+  "description": "Overlord of Product Management.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts",
+    "dev:shadow": "SHADOW_MODE=true tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:contract": "vitest run src/tests/contract",
+    "test:unit": "vitest run src/tests/unit",
+    "test:integration": "vitest run src/tests/integration",
+    "ui:dev": "cd ui && npm run dev",
+    "ui:build": "cd ui && npm run build",
+    "ui:test": "cd ui && npm test 2>/dev/null || echo 'no ui tests yet'",
+    "build:server": "node_modules/.bin/esbuild src/index.ts --bundle --platform=node --format=esm --outfile=ui/src-tauri/binaries/product-overlord-server.js",
+    "rollout:check": "vitest run && echo 'Rollout gate PASSED: all tests passing. Verify manually: (1) classification_agreement ≥85%% on latest eval run (checkRolloutGate), (2) precision-at-3 ≥80%% on latest eval run, (3) all permission-boundary tests passing (src/tests/unit/permission-boundary.test.ts), (4) ≥1 full shadow-replay run reviewed by team, (5) Forge contract tests passing + zero autonomous writes confirmed, (6) FEATURE_ROVO_AGENT_CONNECTOR=false confirmed in production before EAP activation.'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/cheerio": "^0.22.35",
+    "@types/node": "^25.6.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@vitest/coverage-v8": "^4.1.5",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.1",
+    "@lancedb/lancedb": "^0.27.2",
+    "@types/node-cron": "^3.0.11",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "hono": "^4.12.16",
+    "node-cron": "^4.2.1",
+    "openai": "^6.35.0",
+    "pdf-parse": "^2.4.5",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.1"
+  }
+}

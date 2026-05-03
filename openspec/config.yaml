@@ -1,0 +1,47 @@
+schema: spec-driven
+
+# Project context (optional)
+context: |
+  Product: Product Management Jira Assistant System ("product-overlord").
+  Purpose: Turn Jira tickets into action-ready engineering plans.
+  Architecture: External orchestration host with four planes — ingestion,
+  memory, reasoning, execution. Hybrid ingestion using Rovo MCP +
+  Jira Agile REST + linked development context. Internal Memory MCP server
+  exposes resources/prompts/tools to specialist agents. Planning artifacts
+  written into OpenSpec + AGENTS.md.
+  Memory planes: ticket memory, readiness policy memory, repository memory,
+  resolution-pattern memory, evidence store.
+  Output package: readiness verdict, missing information, clarification
+  questions, candidate components/files/tests, OpenSpec change package,
+  optional draft execution handoff.
+  Safety: human approval before any write; no autonomous merge; preserve
+  user permission boundaries; least-privilege connectors.
+  Branching: one work-item key per branch by default (matches Rovo Dev AC
+  checker linking).
+  Platform constraints: Rovo Dev repos < 20 GB; Forge Rovo action payloads
+  < 5 MB; Teamwork Graph + rovo:agentConnector are EAP/beta.
+  Rollout stages (separate OpenSpec changes):
+    1. foundation-jira-ingestion-readiness
+    2. grounded-planning-repo-mapping
+    3. operational-hardening-eval-memory
+    4. jira-native-teammate-shell
+
+rules:
+  proposal:
+    - State assumptions and non-goals explicitly.
+    - Include human approval points and rollback strategy.
+    - Identify which rollout stage the change belongs to.
+  specs:
+    - Use SHALL or MUST language.
+    - Every requirement needs at least one scenario.
+    - Separate behavioral requirements from implementation details.
+    - Cover story and bug paths separately when behavior differs.
+    - Include permission, auditability, and fallback behavior.
+  design:
+    - Include mermaid architecture and/or sequence diagrams when useful.
+    - Define agent contracts, evidence flow, and memory schemas.
+    - Keep deterministic scoring and permission logic in code, not prompts.
+  tasks:
+    - Break work into MVP, hardening, and rollout slices.
+    - Include unit, integration, evaluation, security, and latency tasks.
+    - Add instrumentation and reflection tasks, not only feature code.
