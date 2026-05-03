@@ -47,17 +47,13 @@ function PageShell({ children }: { children: React.ReactNode }) {
       initial="initial"
       animate="enter"
       exit="exit"
-      style={{ flex: 1, overflow: "auto", padding: 24 }}
+      style={{
+        flex: 1,
+        overflow: "auto",
+        padding: "32px 36px",
+      }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1120,
-          margin: "0 auto",
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </motion.div>
   );
 }
@@ -73,7 +69,7 @@ function Loader() {
 export function MainContent() {
   const location = useLocation();
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ flex: 1, minWidth: 0, display: "flex", overflow: "hidden" }}>
       <AnimatePresence mode="wait">
         <Suspense fallback={<Loader />}>
           <Routes location={location} key={location.pathname}>

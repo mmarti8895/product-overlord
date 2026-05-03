@@ -17,9 +17,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <HashRouter>
-          <div className="flex h-dvh flex-col overflow-hidden bg-[color:var(--bg-base)] text-[color:var(--text-primary)]">
+          <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg-base)", color: "var(--text-primary)" }}>
             <TitleBar />
-            <div className="flex flex-1 overflow-hidden">
+            <div style={{ display: "flex", flexDirection: "row", flex: 1, overflow: "hidden", minHeight: 0 }}>
               <Sidebar />
               <MainContent />
             </div>
