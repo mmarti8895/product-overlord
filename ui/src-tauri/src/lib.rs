@@ -2,7 +2,6 @@
 // Tasks 6.3, 6.4, 3.5
 
 use std::net::TcpListener;
-use std::process::Child;
 use std::sync::Mutex;
 use tauri::{
     AppHandle, Manager, Runtime,
@@ -10,8 +9,10 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
+use tauri_plugin_shell::ShellExt;
+
 /// Global sidecar child handle so we can SIGTERM on exit.
-static SIDECAR: Mutex<Option<Child>> = Mutex::new(None);
+static SIDECAR: Mutex<Option<tauri_plugin_shell::process::CommandChild>> = Mutex::new(None);
 
 /// Find a free TCP port starting at `start` (Task 6.4).
 fn find_free_port(start: u16) -> u16 {
@@ -43,7 +44,7 @@ fn spawn_sidecar(app: &AppHandle) {
         .sidecar("product-overlord-server")
         .expect("sidecar binary not configured — run 'npm run build:server' first");
 
-    let child = sidecar_cmd
+    let (_rx, child) = sidecar_cmd
         .env("PORT", port.to_string())
         .env("BASE_URL", format!("http://localhost:{port}"))
         .spawn()

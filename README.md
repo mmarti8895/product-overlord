@@ -130,6 +130,19 @@ Scores are 0–100 from the weighted sum of dimension checks. Clarification ques
 
 ## Getting Started
 
+
+## One-command local dev (backend + desktop UI)
+
+```sh
+npm install
+npm run dev:all
+```
+
+- Builds the backend sidecar for Tauri (`npm run build:server`).
+- Starts the Tauri desktop app (which runs the Vite dev server on port 1420).
+- The desktop app spawns the backend as a sidecar and picks an available port starting at 3000.
+
+
 ### Prerequisites
 
 - Node.js >= 18

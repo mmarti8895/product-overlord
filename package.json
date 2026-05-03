@@ -18,8 +18,10 @@
     "ui:dev": "cd ui && npm run dev",
     "ui:build": "cd ui && npm run build",
     "ui:test": "cd ui && npm test 2>/dev/null || echo 'no ui tests yet'",
-    "build:server": "node_modules/.bin/esbuild src/index.ts --bundle --platform=node --format=esm --outfile=ui/src-tauri/binaries/product-overlord-server.js",
-    "rollout:check": "vitest run && echo 'Rollout gate PASSED: all tests passing. Verify manually: (1) classification_agreement ≥85%% on latest eval run (checkRolloutGate), (2) precision-at-3 ≥80%% on latest eval run, (3) all permission-boundary tests passing (src/tests/unit/permission-boundary.test.ts), (4) ≥1 full shadow-replay run reviewed by team, (5) Forge contract tests passing + zero autonomous writes confirmed, (6) FEATURE_ROVO_AGENT_CONNECTOR=false confirmed in production before EAP activation.'"
+    "build:server": "node_modules/.bin/esbuild src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=ui/src-tauri/binaries/product-overlord-server.js",
+    "rollout:check": "vitest run && echo 'Rollout gate PASSED: all tests passing. Verify manually: (1) classification_agreement ≥85%% on latest eval run (checkRolloutGate), (2) precision-at-3 ≥80%% on latest eval run, (3) all permission-boundary tests passing (src/tests/unit/permission-boundary.test.ts), (4) ≥1 full shadow-replay run reviewed by team, (5) Forge contract tests passing + zero autonomous writes confirmed, (6) FEATURE_ROVO_AGENT_CONNECTOR=false confirmed in production before EAP activation.'",
+    "desktop:dev": "npm run build:server && cd ui && npm run tauri dev",
+    "dev:all": "npm run desktop:dev"
   },
   "keywords": [],
   "author": "",

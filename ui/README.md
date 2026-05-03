@@ -6,6 +6,16 @@ Tauri 2 + React 18 + TypeScript desktop application providing a native GUI for t
 
 ## Quick Start
 
+### One command (backend + frontend + desktop shell)
+
+```bash
+# From the repo root
+npm install
+npm run dev:all
+```
+
+### UI only
+
 ```bash
 # From the repo root
 cd ui
