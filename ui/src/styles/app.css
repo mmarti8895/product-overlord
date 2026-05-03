@@ -1,0 +1,26 @@
+/* Tailwind v4 entrypoint */
+@import "tailwindcss";
+
+/* App theme tokens + glass utilities */
+@import "../theme/tokens.css";
+@import "../theme/glass.css";
+
+/* Base: make typography + focus rings feel premium */
+:root {
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* Make focus visible consistent across custom components */
+:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white 30%);
+  outline-offset: 2px;
+}
+
+/* Remove legacy Vite/Tauri starter styles in App.css by not importing it */

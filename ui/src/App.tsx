@@ -5,8 +5,6 @@ import { TitleBar } from "./components/layout/TitleBar.js";
 import { Sidebar } from "./components/layout/Sidebar.js";
 import { MainContent } from "./components/layout/MainContent.js";
 import { GlassToastStack } from "./components/glass/GlassToast.js";
-import "./theme/tokens.css";
-import "./theme/glass.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,18 +17,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <HashRouter>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100vh",
-              overflow: "hidden",
-              background: "var(--bg-base)",
-              color: "var(--text-primary)",
-            }}
-          >
+          <div className="flex h-dvh flex-col overflow-hidden bg-[color:var(--bg-base)] text-[color:var(--text-primary)]">
             <TitleBar />
-            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            <div className="flex flex-1 overflow-hidden">
               <Sidebar />
               <MainContent />
             </div>

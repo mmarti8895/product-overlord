@@ -39,17 +39,32 @@ fn spawn_sidecar(app: &AppHandle) {
     // Persist so the webview Vite proxy and `get_server_port` can read it.
     std::env::set_var("OVERLORD_PORT", port.to_string());
 
-    let sidecar_cmd = app
-        .shell()
-        .sidecar("product-overlord-server")
-        .expect("sidecar binary not configured — run 'npm run build:server' first");
+    eprintln!("[sidecar] attempting to spawn 'product-overlord-server' on port {port}");
 
-    let (_rx, child) = sidecar_cmd
+    let sidecar_cmd = match app.shell().sidecar("product-overlord-server") {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            eprintln!("[sidecar] failed to resolve sidecar 'product-overlord-server': {err:?}");
+            return;
+        }
+    };
+
+    let (_rx, child) = match sidecar_cmd
+        .env("OVERLORD_PORT", port.to_string())
         .env("PORT", port.to_string())
         .env("BASE_URL", format!("http://localhost:{port}"))
         .spawn()
-        .expect("failed to spawn product-overlord-server sidecar");
+    {
+        Ok(v) => v,
+        Err(err) => {
+            eprintln!("[sidecar] failed to spawn sidecar: {err:?}");
+            return;
+        }
+    };
 
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    eprintln!("[sidecar] spawned; expecting http://127.0.0.1:{port}/health");
     *SIDECAR.lock().unwrap() = Some(child);
 }
 
@@ -74,7 +89,7 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 }
             }
             "quit" => {
-                if let Some(mut child) = SIDECAR.lock().unwrap().take() {
+                if let Some(child) = SIDECAR.lock().unwrap().take() { 
                     let _ = child.kill();
                 }
                 app.exit(0);
@@ -122,7 +137,7 @@ pub fn run() {
         .on_window_event(|_window, event| {
             // SIGTERM sidecar when the last window is destroyed (Task 6.3)
             if let tauri::WindowEvent::Destroyed = event {
-                if let Some(mut child) = SIDECAR.lock().unwrap().take() {
+                if let Some(child) = SIDECAR.lock().unwrap().take() { 
                     let _ = child.kill();
                 }
             }
