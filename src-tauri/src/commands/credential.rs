@@ -1,8 +1,10 @@
 use tauri::State;
 use uuid::Uuid;
 
+use crate::commands::authz::require_permission;
 use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
 use crate::domain::credential::{IntegrationCredential, Provider};
+use crate::domain::permission::Permission;
 use crate::errors::AppError;
 use crate::state::AppState;
 
@@ -12,7 +14,7 @@ use crate::state::AppState;
 
 fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
     let entry = AuditLogEntry::new(action, AuditActor::User { name: "desktop".to_string() }, details);
-    state.audit_log.lock().unwrap().push(entry);
+    let _ = state.audit_store.append(&entry);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -33,6 +35,8 @@ pub fn cmd_add_credential(
     secret: String,
     base_url: Option<String>,
 ) -> Result<IntegrationCredential, AppError> {
+    require_permission(&state, Permission::AddCredential, "add_credential")?;
+
     let cred = state.credential_store.add(provider, label, secret.as_str(), base_url)?;
 
     audit(
@@ -50,6 +54,8 @@ pub fn cmd_delete_credential(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<(), AppError> {
+    require_permission(&state, Permission::DeleteCredential, "delete_credential")?;
+
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| AppError::Validation(format!("invalid credential id: {id}")))?;
 
@@ -79,6 +85,12 @@ pub fn cmd_check_credential_health(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<bool, AppError> {
+    require_permission(
+        &state,
+        Permission::CheckCredentialHealth,
+        "check_credential_health",
+    )?;
+
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| AppError::Validation(format!("invalid credential id: {id}")))?;
 
@@ -98,6 +110,7 @@ pub fn cmd_check_credential_health(
 #[tauri::command]
 pub fn cmd_list_credentials(
     state: State<'_, AppState>,
-) -> Vec<IntegrationCredential> {
-    state.credential_store.list()
+) -> Result<Vec<IntegrationCredential>, AppError> {
+    require_permission(&state, Permission::ViewCredentialList, "list_credentials")?;
+    Ok(state.credential_store.list())
 }

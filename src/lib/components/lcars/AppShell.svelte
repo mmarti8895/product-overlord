@@ -168,4 +168,30 @@
     background-color: var(--color-lcars-tan);
     border-radius: var(--radius-sm);
   }
+
+  @media (max-width: 1200px) {
+    .app-shell {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows:
+        var(--shell-row-top)
+        auto
+        auto
+        minmax(0, 1fr)
+        auto
+        var(--shell-row-bottom);
+      grid-template-areas:
+        "top"
+        "nav"
+        "telemetry"
+        "main"
+        "main"
+        "bottom";
+    }
+
+    .shell-nav,
+    .shell-telemetry {
+      border: none;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+  }
 </style>

@@ -100,6 +100,31 @@ pub fn role_has_permission(role: &Role, permission: &Permission) -> bool {
     permissions_for_role(role).contains(permission)
 }
 
+/// Returns the minimum role required to satisfy a permission.
+pub fn minimum_role_for_permission(permission: &Permission) -> Role {
+    match permission {
+        Permission::AssignRoles => Role::Admin,
+
+        Permission::AddCredential
+        | Permission::DeleteCredential
+        | Permission::CheckCredentialHealth
+        | Permission::ManageNotificationRules
+        | Permission::TriggerRepositoryIndex
+        | Permission::RequestTicketReview
+        | Permission::ConfigureLlmProvider
+        | Permission::InvokeLlm
+        | Permission::ExportAuditLog
+        | Permission::ChangeSystemConfig => Role::Operator,
+
+        Permission::ViewCredentialList
+        | Permission::ViewNotificationRules
+        | Permission::ViewRepositoryIndex
+        | Permission::ViewJiraTickets
+        | Permission::ViewAuditLog
+        | Permission::ViewSystemConfig => Role::ReadOnly,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,5 +169,26 @@ mod tests {
         let json = serde_json::to_string(&role).unwrap();
         let decoded: Role = serde_json::from_str(&json).unwrap();
         assert_eq!(role, decoded);
+    }
+
+    #[test]
+    fn minimum_role_is_admin_for_assign_roles() {
+        assert_eq!(minimum_role_for_permission(&Permission::AssignRoles), Role::Admin);
+    }
+
+    #[test]
+    fn minimum_role_is_operator_for_trigger_index() {
+        assert_eq!(
+            minimum_role_for_permission(&Permission::TriggerRepositoryIndex),
+            Role::Operator
+        );
+    }
+
+    #[test]
+    fn minimum_role_is_readonly_for_view_index() {
+        assert_eq!(
+            minimum_role_for_permission(&Permission::ViewRepositoryIndex),
+            Role::ReadOnly
+        );
     }
 }
