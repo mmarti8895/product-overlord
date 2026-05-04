@@ -18,10 +18,6 @@
   const scaffold = dorStore.scaffold;
   const llmResult = llmConsole.result;
 
-  // Ephemeral LLM prompt — never persisted to store or storage.
-  let llmPrompt = $state('Draft a concise PM review summary for the selected ticket.');
-  let selectedProvider = $state<LlmProvider>('open_ai');
-
   const dorStateLabel: Record<DorItemState, string> = {
     complete: 'Complete',
     incomplete: 'Incomplete',

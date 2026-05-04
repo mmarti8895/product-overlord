@@ -129,9 +129,9 @@ function createSessionStore() {
 
   async function unlock(principalId: string, role: Role, ttlMinutes?: number) {
     const result = await invoke<SessionStatus>('cmd_unlock_session', {
-      principal_id: principalId,
+      principalId,
       role,
-      ttl_minutes: ttlMinutes ?? 60,
+      ttlMinutes: ttlMinutes ?? 60,
     });
     if (result.status === 'success') {
       set(result.data);
