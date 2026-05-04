@@ -1,0 +1,156 @@
+/* ============================================================
+   LCARS Design System — Global Base Styles
+   Imports tokens, sets document defaults, and resets browser
+   styles to a consistent LCARS baseline.
+   ============================================================ */
+
+/* Google Fonts — loaded at runtime via WebView network access.
+   For offline/packaged builds, bundle font files in static/fonts/
+   and replace these imports with @font-face declarations. */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Token layer — must be first after font imports */
+@import './tokens.css';
+
+/* --------------------------------------------------
+   Box Model Reset
+   -------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* --------------------------------------------------
+   Document Root
+   -------------------------------------------------- */
+html {
+  min-height: 100%;
+  font-size: 16px;                         /* 1rem baseline */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-weight: var(--weight-regular);
+  font-synthesis: none;
+  overflow-x: hidden;
+}
+
+/* --------------------------------------------------
+   Typography Base
+   -------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* --------------------------------------------------
+   Interactive Elements Reset
+   -------------------------------------------------- */
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+a {
+  color: var(--color-text-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------
+   Focus Visible (keyboard navigation)
+   -------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--color-lcars-orange);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------
+   Media — Prefers Reduced Motion
+   -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------
+   Scrollbars (Chromium / WebKit)
+   -------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-elevated);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-lcars-tan);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-lcars-orange);
+}
+
+/* --------------------------------------------------
+   Skip Navigation Link (accessibility)
+   -------------------------------------------------- */
+.skip-to-content {
+  position: absolute;
+  top: -999px;
+  left: var(--space-4);
+  z-index: 9999;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-lcars-orange);
+  color: var(--color-text-inverse);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-md);
+  transition: top var(--duration-fast) var(--ease-standard);
+}
+
+.skip-to-content:focus {
+  top: var(--space-4);
+}
+
+/* --------------------------------------------------
+   Selection
+   -------------------------------------------------- */
+::selection {
+  background: var(--color-lcars-purple);
+  color: var(--color-text-primary);
+}
