@@ -159,6 +159,22 @@ fn normalize_ticket_key(raw: &str) -> Result<String, AppError> {
             "ticket key exceeds maximum length of {TICKET_KEY_MAX_LEN}"
         )));
     }
+
+    if !key.contains('-') || key.starts_with('-') || key.ends_with('-') {
+        return Err(AppError::Validation(
+            "ticket key must match PROJECT-123 style format".to_string(),
+        ));
+    }
+
+    if !key
+        .chars()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '-')
+    {
+        return Err(AppError::Validation(
+            "ticket key contains invalid characters".to_string(),
+        ));
+    }
+
     Ok(key)
 }
 
@@ -217,5 +233,13 @@ mod tests {
             .unwrap_err();
 
         assert!(err.to_string().contains("confidence"));
+    }
+
+    #[test]
+    fn malformed_ticket_key_is_rejected() {
+        let store = ScaffoldStore::new();
+        assert!(store.create("proj 123".to_string()).is_err());
+        assert!(store.create("-123".to_string()).is_err());
+        assert!(store.create("PROJ123".to_string()).is_err());
     }
 }

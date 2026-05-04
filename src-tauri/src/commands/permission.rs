@@ -1,30 +1,25 @@
 use tauri::State;
 
-use crate::commands::authz::require_permission;
-use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
+use crate::commands::audit::append_user_audit;
+use crate::commands::authz::{effective_role, require_permission};
+use crate::domain::audit::AuditAction;
 use crate::domain::permission::{Permission, Role};
 use crate::errors::AppError;
 use crate::state::AppState;
 
-fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
-    let entry = AuditLogEntry::new(
-        action,
-        AuditActor::User {
-            name: "desktop".to_string(),
-        },
-        details,
-    );
-    let _ = state.audit_store.append(&entry);
-}
-
-/// Return the current in-memory role used for server-side authorization checks.
+/// Return the effective role derived from the current session.
+///
+/// Returns `ReadOnly` (the minimum role) when the session is locked or expired
+/// so that callers can always display a meaningful state.
 #[tauri::command]
-pub fn cmd_get_current_role(state: State<'_, AppState>) -> Role {
-    state.current_role.lock().unwrap().clone()
+pub fn cmd_get_current_role(state: State<'_, AppState>) -> Result<Role, AppError> {
+    Ok(effective_role(&state)?.unwrap_or(Role::ReadOnly))
 }
 
-/// Set the current in-memory role for server-side authorization checks.
-/// Only callers with `assign_roles` permission can change roles.
+/// Change the role on the current active session.
+///
+/// Requires `AssignRoles` permission (Admin only). The session must already be
+/// unlocked — a locked session cannot elevate itself.
 #[tauri::command]
 pub fn cmd_set_current_role(
     state: State<'_, AppState>,
@@ -32,10 +27,17 @@ pub fn cmd_set_current_role(
 ) -> Result<Role, AppError> {
     require_permission(&state, Permission::AssignRoles, "set_current_role")?;
 
-    let previous = state.current_role.lock().unwrap().clone();
-    *state.current_role.lock().unwrap() = new_role.clone();
+    let previous = effective_role(&state)?.unwrap_or(Role::ReadOnly);
 
-    audit(
+    {
+        let mut manager = state
+            .session_manager
+            .lock()
+            .map_err(|_| AppError::Internal(anyhow::anyhow!("session lock poisoned")))?;
+        manager.set_role(new_role.clone());
+    }
+
+    append_user_audit(
         &state,
         AuditAction::RoleAssigned,
         Some(format!(
@@ -43,7 +45,7 @@ pub fn cmd_set_current_role(
             previous.display_name(),
             new_role.display_name()
         )),
-    );
+    )?;
 
     Ok(new_role)
 }

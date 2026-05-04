@@ -57,6 +57,17 @@ pub enum AuditAction {
 ///
 /// Entries must never be updated or deleted after creation.
 /// The `details` field must contain only sanitized, non-secret content.
+///
+/// ## Hash chain (SEC-204)
+///
+/// When written by `AuditStore::append`, three optional fields are set:
+/// - `chain_version`: always `1` for records written by this implementation.
+/// - `prev_hash`:     hex-SHA-256 of the previous entry (empty string for entry #0).
+/// - `entry_hash`:    hex-SHA-256 of `prev_hash || canonical_json_without_hash_fields`.
+///
+/// Records read from a log written by an older version of the app may have
+/// all three fields absent — the verifier treats them as unchained legacy
+/// entries and reports them separately.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditLogEntry {
     /// Stable opaque identifier for this log entry.
@@ -76,6 +87,42 @@ pub struct AuditLogEntry {
 
     /// Optional correlation id to link related entries (e.g. a review session).
     pub correlation_id: Option<Uuid>,
+
+    // ── SEC-204 chain fields ───────────────────────────────────────────────
+    /// Chain format version. `1` for all entries written by this implementation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chain_version: Option<u8>,
+
+    /// Hex-SHA-256 of the previous entry's `entry_hash`.
+    /// Empty string `""` for the first entry in the log.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_hash: Option<String>,
+
+    /// Hex-SHA-256 of `prev_hash || canonical_json_without_chain_fields`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entry_hash: Option<String>,
+}
+
+/// Result of a full audit-chain integrity scan.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditIntegrityReport {
+    /// True only when every chained entry's hash is valid and the chain is
+    /// unbroken from first to last.
+    pub ok: bool,
+
+    /// Total number of entries scanned (including legacy unchained entries).
+    pub total_entries: usize,
+
+    /// Number of entries that carry chain fields (chain_version is Some).
+    pub chained_entries: usize,
+
+    /// 1-based line number of the first invalid or missing chain link.
+    /// `None` when `ok` is true.
+    pub first_invalid_line: Option<usize>,
+
+    /// Human-readable reason for the first failure.
+    /// `None` when `ok` is true.
+    pub reason: Option<String>,
 }
 
 impl AuditLogEntry {
@@ -92,6 +139,9 @@ impl AuditLogEntry {
             timestamp: Utc::now(),
             details,
             correlation_id: None,
+            chain_version: None,
+            prev_hash: None,
+            entry_hash: None,
         }
     }
 

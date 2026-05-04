@@ -73,7 +73,7 @@
           class="ticket-card"
           class:active={ticket.key === selectedTicket}
           type="button"
-          on:click={() => selectTicket(ticket.key)}
+          onclick={() => selectTicket(ticket.key)}
         >
           <div class="ticket-card__top">
             <span class={`priority-chip ${priorityClass(ticket.priority)}`}>{ticket.priority}</span>
@@ -119,7 +119,7 @@
     <label class="lcars-label" for="prompt">Prompt</label>
     <textarea id="prompt" bind:value={llmPrompt} rows="5"></textarea>
 
-    <button class="preview-button" type="button" on:click={runPreview}>
+    <button class="preview-button" type="button" onclick={runPreview}>
       Run Stub Preview
     </button>
 

@@ -1,24 +1,15 @@
 use tauri::State;
 
+use crate::commands::audit::append_user_audit;
 use crate::commands::authz::require_permission;
-use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
+use crate::domain::audit::AuditAction;
 use crate::domain::llm::{
     LlmInvocationRequest, LlmInvocationResponse, LlmProviderConfig,
 };
 use crate::domain::permission::Permission;
 use crate::errors::AppError;
 use crate::state::AppState;
-
-fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
-    let entry = AuditLogEntry::new(
-        action,
-        AuditActor::User {
-            name: "desktop".to_string(),
-        },
-        details,
-    );
-    let _ = state.audit_store.append(&entry);
-}
+use crate::validation::validate_base_url;
 
 #[tauri::command]
 pub fn cmd_configure_llm_provider(
@@ -27,9 +18,17 @@ pub fn cmd_configure_llm_provider(
 ) -> Result<LlmProviderConfig, AppError> {
     require_permission(&state, Permission::ConfigureLlmProvider, "configure_llm_provider")?;
 
-    let configured = state.llm_gateway.configure_provider(config)?;
+    let normalized_config = LlmProviderConfig {
+        base_url: match config.base_url {
+            Some(url) => Some(validate_base_url(&url)?.normalised),
+            None => None,
+        },
+        ..config
+    };
 
-    audit(
+    let configured = state.llm_gateway.configure_provider(normalized_config)?;
+
+    append_user_audit(
         &state,
         AuditAction::LlmProviderConfigured,
         Some(format!(
@@ -38,7 +37,7 @@ pub fn cmd_configure_llm_provider(
             configured.model,
             configured.enabled
         )),
-    );
+    )?;
 
     Ok(configured)
 }
@@ -66,7 +65,7 @@ pub fn cmd_invoke_llm(
     let provider_name = request.provider.display_name().to_string();
     let response = state.llm_gateway.invoke(request)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::LlmInvoked,
         Some(format!(
@@ -75,7 +74,7 @@ pub fn cmd_invoke_llm(
             response.model,
             response.simulated
         )),
-    );
+    )?;
 
     Ok(response)
 }

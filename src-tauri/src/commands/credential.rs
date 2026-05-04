@@ -1,21 +1,18 @@
 use tauri::State;
 use uuid::Uuid;
 
+use crate::commands::audit::append_user_audit;
 use crate::commands::authz::require_permission;
-use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
+use crate::domain::audit::AuditAction;
 use crate::domain::credential::{IntegrationCredential, Provider};
 use crate::domain::permission::Permission;
 use crate::errors::AppError;
 use crate::state::AppState;
+use crate::validation::validate_base_url;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helper — emit an audit log entry from a command
 // ──────────────────────────────────────────────────────────────────────────────
-
-fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
-    let entry = AuditLogEntry::new(action, AuditActor::User { name: "desktop".to_string() }, details);
-    let _ = state.audit_store.append(&entry);
-}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Tauri commands
@@ -37,13 +34,20 @@ pub fn cmd_add_credential(
 ) -> Result<IntegrationCredential, AppError> {
     require_permission(&state, Permission::AddCredential, "add_credential")?;
 
-    let cred = state.credential_store.add(provider, label, secret.as_str(), base_url)?;
+    let normalized_base_url = match base_url {
+        Some(url) => Some(validate_base_url(&url)?.normalised),
+        None => None,
+    };
 
-    audit(
+    let cred = state
+        .credential_store
+        .add(provider, label, secret.as_str(), normalized_base_url)?;
+
+    append_user_audit(
         &state,
         AuditAction::CredentialAdded,
         Some(format!("provider={}, id={}", cred.provider.display_name(), cred.id)),
-    );
+    )?;
 
     Ok(cred)
 }
@@ -68,11 +72,11 @@ pub fn cmd_delete_credential(
 
     state.credential_store.delete(uuid)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::CredentialDeleted,
         Some(format!("id={uuid}, label={label}")),
-    );
+    )?;
 
     Ok(())
 }
@@ -96,11 +100,11 @@ pub fn cmd_check_credential_health(
 
     let healthy = state.credential_store.health_check(uuid)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::CredentialHealthChecked,
         Some(format!("id={uuid}, healthy={healthy}")),
-    );
+    )?;
 
     Ok(healthy)
 }

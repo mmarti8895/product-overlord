@@ -1,23 +1,13 @@
 use tauri::State;
 use uuid::Uuid;
 
+use crate::commands::audit::append_user_audit;
 use crate::commands::authz::require_permission;
-use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
+use crate::domain::audit::AuditAction;
 use crate::domain::permission::Permission;
 use crate::domain::scaffolding::{EffortEstimate, TicketScaffold};
 use crate::errors::AppError;
 use crate::state::AppState;
-
-fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
-    let entry = AuditLogEntry::new(
-        action,
-        AuditActor::User {
-            name: "desktop".to_string(),
-        },
-        details,
-    );
-    let _ = state.audit_store.append(&entry);
-}
 
 #[tauri::command]
 pub fn cmd_create_ticket_scaffold(
@@ -32,11 +22,11 @@ pub fn cmd_create_ticket_scaffold(
 
     let scaffold = state.scaffold_store.create(ticket_key)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::ConfigurationChanged,
         Some(format!("ticket scaffold created for {}", scaffold.ticket_key)),
-    );
+    )?;
 
     Ok(scaffold)
 }
@@ -76,14 +66,14 @@ pub fn cmd_set_dor_item_status(
 
     let scaffold = state.scaffold_store.set_dor_item_status(ticket_key, id, done)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::ConfigurationChanged,
         Some(format!(
             "ticket scaffold DoR updated for {}, item={}, done={done}",
             scaffold.ticket_key, id
         )),
-    );
+    )?;
 
     Ok(scaffold)
 }
@@ -104,14 +94,14 @@ pub fn cmd_set_acceptance_criteria(
         .scaffold_store
         .set_acceptance_criteria(ticket_key, criteria)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::ConfigurationChanged,
         Some(format!(
             "ticket scaffold acceptance criteria updated for {}",
             scaffold.ticket_key
         )),
-    );
+    )?;
 
     Ok(scaffold)
 }
@@ -130,14 +120,14 @@ pub fn cmd_set_effort_estimate(
 
     let scaffold = state.scaffold_store.set_effort_estimate(ticket_key, estimate)?;
 
-    audit(
+    append_user_audit(
         &state,
         AuditAction::ConfigurationChanged,
         Some(format!(
             "ticket scaffold effort estimate updated for {}",
             scaffold.ticket_key
         )),
-    );
+    )?;
 
     Ok(scaffold)
 }

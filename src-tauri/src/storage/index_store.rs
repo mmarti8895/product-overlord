@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::errors::AppError;
+use crate::storage::path_policy::{app_storage_root, enforce_storage_root};
 
 const INDEX_URI_MAX_LEN: usize = 1024;
 
@@ -35,6 +36,8 @@ struct IndexStoreState {
 /// Table/schema creation and indexing flows are implemented in later phases.
 pub struct IndexStore {
     state: Mutex<IndexStoreState>,
+    /// SEC-203.3: all index paths must be confined to this root.
+    allowed_root: std::path::PathBuf,
 }
 
 impl IndexStore {
@@ -46,6 +49,21 @@ impl IndexStore {
                 last_checked_at: None,
                 last_error: None,
             }),
+            allowed_root: app_storage_root(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_root(allowed_root: std::path::PathBuf) -> Self {
+        let default_uri = allowed_root.join("lancedb").to_string_lossy().into_owned();
+        Self {
+            state: Mutex::new(IndexStoreState {
+                db_uri: default_uri,
+                initialized: false,
+                last_checked_at: None,
+                last_error: None,
+            }),
+            allowed_root,
         }
     }
 
@@ -57,7 +75,7 @@ impl IndexStore {
             state.db_uri.clone()
         };
 
-        ensure_local_directory(&target_uri)?;
+        ensure_local_directory(&target_uri, &self.allowed_root)?;
 
         match probe_lancedb(&target_uri) {
             Ok(()) => {
@@ -160,13 +178,17 @@ fn normalise_uri(raw: &str) -> Result<String, AppError> {
     Ok(trimmed.trim_end_matches('/').to_string())
 }
 
-fn ensure_local_directory(uri: &str) -> Result<(), AppError> {
+fn ensure_local_directory(uri: &str, allowed_root: &std::path::Path) -> Result<(), AppError> {
     // For Phase 1E we support filesystem paths only.
     if uri.contains("://") {
         return Err(AppError::Validation(
             "index store URI must be a local filesystem path in Phase 1E".to_string(),
         ));
     }
+
+    // SEC-203.3: enforce confinement to the app storage root before creating any directory.
+    let path = std::path::Path::new(uri);
+    enforce_storage_root(path, allowed_root)?;
 
     fs::create_dir_all(uri)
         .map_err(|err| AppError::Storage(format!("failed to create index directory: {err}")))
@@ -238,15 +260,35 @@ mod tests {
 
     #[test]
     fn initialize_local_path_succeeds() {
-        let temp = std::env::temp_dir().join(format!("product-overlord-lancedb-{}", Uuid::new_v4()));
-        let uri = temp.to_string_lossy().to_string();
+        // Use with_root so the temp directory is treated as the allowed root.
+        let root = std::env::temp_dir().join(format!("product-overlord-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let candidate = root.join("lancedb");
+        let uri = candidate.to_string_lossy().to_string();
 
-        let store = IndexStore::new();
+        let store = IndexStore::with_root(root);
         let health = store.initialize(Some(uri.clone())).unwrap();
 
         assert!(Path::new(&uri).exists());
         assert!(health.initialized);
         assert!(health.reachable);
         assert_eq!(health.db_uri, uri);
+    }
+
+    #[test]
+    fn initialize_rejects_path_outside_allowed_root() {
+        let root = std::env::temp_dir().join(format!("product-overlord-root-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+
+        // A sibling directory is outside the allowed root.
+        let sibling = std::env::temp_dir().join(format!("escape-{}", Uuid::new_v4()));
+        let uri = sibling.to_string_lossy().to_string();
+
+        let store = IndexStore::with_root(root);
+        let err = store.initialize(Some(uri)).unwrap_err();
+        assert!(
+            err.to_string().contains("outside") || err.to_string().contains("traversal"),
+            "expected path-policy error, got: {err}"
+        );
     }
 }

@@ -1,16 +1,12 @@
 use tauri::State;
 
+use crate::commands::audit::append_user_audit;
 use crate::commands::authz::require_permission;
-use crate::domain::audit::{AuditAction, AuditActor, AuditLogEntry};
+use crate::domain::audit::AuditAction;
 use crate::domain::permission::Permission;
 use crate::errors::AppError;
 use crate::state::AppState;
 use crate::storage::index_store::IndexStoreHealth;
-
-fn audit(state: &AppState, action: AuditAction, details: Option<String>) {
-    let entry = AuditLogEntry::new(action, AuditActor::User { name: "desktop".to_string() }, details);
-    let _ = state.audit_store.append(&entry);
-}
 
 /// Initialize the local LanceDB storage directory and validate connectivity.
 #[tauri::command]
@@ -26,19 +22,19 @@ pub fn cmd_initialize_index_store(
 
     match state.index_store.initialize(db_uri.clone()) {
         Ok(health) => {
-            audit(
+            append_user_audit(
                 &state,
                 AuditAction::RepositoryIndexCompleted,
                 Some(format!("lancedb initialized at {}", health.db_uri)),
-            );
+            )?;
             Ok(health)
         }
         Err(err) => {
-            audit(
+            append_user_audit(
                 &state,
                 AuditAction::RepositoryIndexFailed,
                 Some(format!("lancedb init failed ({})", err.frontend_message())),
-            );
+            )?;
             Err(err)
         }
     }
