@@ -33,8 +33,7 @@
 {#snippet top()}
   <div class="rail-top">
     <div class="rail-top__left lcars-elbow">
-      <span class="lcars-label">Product Overlord</span>
-      <h1>Autonomous AI PM</h1>
+      <h1>Product Overlord</h1>
     </div>
     <div class="rail-top__center">
       <div class="lcars-pill is-orange">Suggest-Only Mode</div>
@@ -54,7 +53,6 @@
     {#each navItems as item}
       <button class="rail-nav__item" type="button">
         <span>{item.label}</span>
-        <small>{item.value}</small>
       </button>
     {/each}
   </div>

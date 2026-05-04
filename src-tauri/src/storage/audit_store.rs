@@ -218,18 +218,19 @@ impl AuditStore {
         let reader = BufReader::new(file);
         let mut last_hash = String::new();
         for line in reader.lines() {
-            let raw = line.map_err(|err| {
-                AppError::Storage(format!("failed to read audit log line: {err}"))
-            })?;
+            let raw = match line {
+                Ok(r) => r,
+                Err(_) => continue, // skip I/O errors on individual lines
+            };
             if raw.trim().is_empty() {
                 continue;
             }
-            // Parse just enough to extract entry_hash.
-            let parsed: serde_json::Value = serde_json::from_str(&raw).map_err(|err| {
-                AppError::Serialization(format!("invalid audit log entry: {err}"))
-            })?;
-            if let Some(h) = parsed.get("entry_hash").and_then(|v| v.as_str()) {
-                last_hash = h.to_string();
+            // Best-effort: skip unparseable lines (e.g. partially-written concurrent writes).
+            // An unreadable line cannot contribute a hash, so we keep the last good value.
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if let Some(h) = parsed.get("entry_hash").and_then(|v| v.as_str()) {
+                    last_hash = h.to_string();
+                }
             }
         }
         Ok(last_hash)

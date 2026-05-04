@@ -187,10 +187,6 @@ mod tests {
 
     #[test]
     fn poisoned_session_manager_returns_internal_error_not_panic() {
-        use std::sync::Arc;
-        use crate::storage::audit_store::AuditStore;
-        use crate::storage::index_store::IndexStore;
-
         // We can't safely poison the mutex inside AppState from the outside, but
         // we can construct an equivalent scenario using a standalone Mutex and
         // verify the lock_or_internal helper converts poison into AppError::Internal.
