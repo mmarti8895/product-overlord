@@ -3,7 +3,7 @@
   import { ticketQueue } from '$lib/stores/ticketQueue';
   import { dorStore } from '$lib/stores/dor';
   import { llmConsole } from '$lib/stores/llmConsole';
-  import { effectiveRole } from '$lib/stores/session';
+  import { effectiveRole, session } from '$lib/stores/session';
   import { hasPermission } from '$lib/stores/capabilities';
   import { credentials, credentialSummary } from '$lib/stores/credentials';
   import { indexHealth } from '$lib/stores/indexHealth';
@@ -126,6 +126,7 @@
   const canOperateTickets = $derived(hasPermission($effectiveRole, 'request_ticket_review'));
   const canInvokeLlm = $derived(hasPermission($effectiveRole, 'invoke_llm'));
   const canViewAudit = $derived(hasPermission($effectiveRole, 'view_audit_log'));
+  const canRunAuditCheck = $derived($session.unlocked && !$session.expired && canViewAudit);
 
   onMount(() => {
     ticketQueue.refresh();
@@ -192,7 +193,7 @@
       <button type="button" onclick={() => openSurface('tickets')}>Open Ticket Queue</button>
       <button type="button" onclick={() => openSurface('scaffolds')}>Open Scaffolds</button>
       <button type="button" onclick={() => openSurface('integrations')}>Open Integrations</button>
-      <button type="button" onclick={() => openSurface('audit')}>Run Audit Check</button>
+      <button type="button" onclick={() => openSurface('audit')} disabled={!canRunAuditCheck}>Run Audit Check</button>
       <button type="button" onclick={runDailyReviewRoutine} disabled={$activeRoutine !== null}>Run Daily Review</button>
       <button type="button" onclick={runPlanningReadinessRoutine} disabled={$activeRoutine !== null}>Run Planning Readiness</button>
       <button type="button" onclick={runOpsVerification} disabled={$opsVerificationRunning}>Run E2E Verification</button>
@@ -251,11 +252,15 @@
     </header>
 
     <div class="command-actions">
-      <button type="button" onclick={runAuditCheck} disabled={!canViewAudit}>Run Integrity Check</button>
+      <button type="button" onclick={runAuditCheck} disabled={!canRunAuditCheck}>Run Integrity Check</button>
     </div>
 
-    {#if !canViewAudit}
-      <p class="lcars-label status-warn">Read-only audit verification is unavailable for current role.</p>
+    {#if !canRunAuditCheck}
+      {#if !$session.unlocked || $session.expired}
+        <p class="lcars-label status-warn">Unlock the session to run audit integrity verification.</p>
+      {:else}
+        <p class="lcars-label status-warn">Audit verification is unavailable for the current role.</p>
+      {/if}
     {/if}
 
     {#if $auditReport.status === 'loading'}

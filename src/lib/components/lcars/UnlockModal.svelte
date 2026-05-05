@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { session } from '$lib/stores/session';
   import type { Role } from '$lib/stores/session';
 
@@ -13,6 +14,49 @@
   let ttl = $state(60);
   let pending = $state(false);
   let errorMsg = $state('');
+  let modalEl: HTMLDivElement | null = null;
+  let principalInputEl: HTMLInputElement | null = null;
+
+  onMount(() => {
+    principalInputEl?.focus();
+  });
+
+  function handleOverlayKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      onclose();
+      return;
+    }
+
+    if (e.key !== 'Tab' || !modalEl) return;
+
+    const focusables = Array.from(
+      modalEl.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    if (focusables.length === 0) {
+      e.preventDefault();
+      return;
+    }
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+
+    if (e.shiftKey) {
+      if (active === first || !modalEl.contains(active)) {
+        e.preventDefault();
+        last.focus();
+      }
+      return;
+    }
+
+    if (active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   async function submit() {
     if (!principalId.trim()) {
@@ -31,9 +75,22 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_outside -->
-<div class="unlock-overlay" role="dialog" aria-modal="true" aria-label="Unlock Session">
-  <div class="unlock-modal">
+<div
+  class="unlock-overlay"
+  role="presentation"
+  onclick={(e) => {
+    if (e.currentTarget === e.target) onclose();
+  }}
+  onkeydown={handleOverlayKeydown}
+>
+  <div
+    class="unlock-modal"
+    bind:this={modalEl}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Unlock Session"
+    tabindex="-1"
+  >
     <header>
       <p class="lcars-label">Session Authentication</p>
       <h2>Unlock Session</h2>
@@ -41,6 +98,7 @@
 
     <label class="lcars-label" for="principal-id">Principal ID</label>
     <input
+      bind:this={principalInputEl}
       id="principal-id"
       type="text"
       bind:value={principalId}

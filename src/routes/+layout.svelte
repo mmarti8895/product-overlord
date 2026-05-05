@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import '../lib/styles/global.css';
   import '../lib/styles/lcars.css';
   import AppShell from '../lib/components/lcars/AppShell.svelte';
@@ -25,6 +25,8 @@
 
   let now = $state(new Date());
   let showUnlock = $state(false);
+  let sessionButtonEl: HTMLButtonElement | null = null;
+  let unlockReturnFocusEl: HTMLElement | null = null;
   let notification = $state<{ type: string; message: string } | null>(null);
   let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -36,6 +38,18 @@
     { label: 'Audit', value: 'audit' }
   ];
   const activeSurface = navigation.activeSurface;
+
+  function openUnlockModal() {
+    unlockReturnFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : sessionButtonEl;
+    showUnlock = true;
+  }
+
+  async function closeUnlockModal() {
+    showUnlock = false;
+    await tick();
+    (unlockReturnFocusEl ?? sessionButtonEl)?.focus();
+    unlockReturnFocusEl = null;
+  }
 
   function showNotification(type: string, message: string) {
     notification = { type, message };
@@ -60,7 +74,7 @@
     if (state.status === 'permission_denied') {
       showNotification('permission_denied', state.message);
       if (state.message.includes('expired') || state.message.includes('locked')) {
-        showUnlock = true;
+        openUnlockModal();
       }
     } else if (state.status === 'suggest_only') {
       showNotification('suggest_only', state.message);
@@ -72,7 +86,7 @@
   // Wire session-expiry into unlock prompt.
   session.onExpired(() => {
     showNotification('permission_denied', 'Session expired. Please re-authenticate.');
-    showUnlock = true;
+    openUnlockModal();
   });
 
   function roleLabel(role: string | null): string {
@@ -240,9 +254,10 @@
 {#snippet bottom()}
   <div class="rail-bottom">
     <button
+      bind:this={sessionButtonEl}
       class="lcars-pill is-purple session-btn"
       type="button"
-      onclick={() => (showUnlock = true)}
+      onclick={openUnlockModal}
       title={$session.unlocked ? 'Click to manage session' : 'Click to unlock session'}
     >
       Role: {roleLabel($effectiveRole)}
@@ -266,7 +281,7 @@
 {/if}
 
 {#if showUnlock}
-  <UnlockModal onclose={() => (showUnlock = false)} />
+  <UnlockModal onclose={closeUnlockModal} />
 {/if}
 
 <AppShell {top} {nav} {telemetry} {bottom}>
@@ -345,12 +360,6 @@
   .rail-nav__item--active {
     border: 1px solid var(--color-lcars-orange);
     box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.25) inset;
-  }
-
-  .rail-nav__item small {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.8;
   }
 
   .rail-telemetry {
