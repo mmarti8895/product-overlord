@@ -116,7 +116,7 @@ function createDorStore() {
   async function load(ticketKey: string) {
     scaffold.set(loading());
     const result = await invoke<TicketScaffold | null>('cmd_get_ticket_scaffold', {
-      ticket_key: ticketKey,
+      ticketKey,
     });
     if (result.status === 'success') {
       if (result.data === null) {
@@ -135,8 +135,8 @@ function createDorStore() {
 
   async function setItemStatus(ticketKey: string, itemId: string, done: boolean) {
     const result = await invoke<TicketScaffold>('cmd_set_dor_item_status', {
-      ticket_key: ticketKey,
-      item_id: itemId,
+      ticketKey,
+      itemId,
       done,
     });
     // Update only on confirmed backend response — no optimistic update.
@@ -149,7 +149,7 @@ function createDorStore() {
 
   async function create(ticketKey: string) {
     const result = await invoke<TicketScaffold>('cmd_create_ticket_scaffold', {
-      ticket_key: ticketKey,
+      ticketKey,
     });
     if (result.status === 'success') {
       scaffold.set(success(toScaffoldView(result.data)));
@@ -160,7 +160,7 @@ function createDorStore() {
 
   async function setAcceptanceCriteria(ticketKey: string, criteria: string[]) {
     const result = await invoke<TicketScaffold>('cmd_set_acceptance_criteria', {
-      ticket_key: ticketKey,
+      ticketKey,
       criteria,
     });
     if (result.status === 'success') {
@@ -172,7 +172,7 @@ function createDorStore() {
 
   async function setEffortEstimate(ticketKey: string, estimate: EffortEstimate) {
     const result = await invoke<TicketScaffold>('cmd_set_effort_estimate', {
-      ticket_key: ticketKey,
+      ticketKey,
       estimate,
     });
     if (result.status === 'success') {

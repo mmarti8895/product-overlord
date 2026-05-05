@@ -9,6 +9,8 @@
   import { indexHealth } from '$lib/stores/indexHealth';
   import { policyState } from '$lib/stores/policy';
   import { auditStore } from '$lib/stores/audit';
+  import { opsVerifier } from '$lib/stores/opsVerifier';
+  import { routines } from '$lib/stores/routines';
   import { navigation, type ShellSurface } from '$lib/stores/navigation';
   import type { LlmProvider } from '$lib/stores/llmConsole';
   import type { DorItemState, EffortBand } from '$lib/stores/dor';
@@ -24,6 +26,10 @@
   const scaffoldList = dorStore.scaffolds;
   const auditReport = auditStore.report;
   const auditTimeline = auditStore.timeline;
+  const routineRuns = routines.runs;
+  const activeRoutine = routines.activeRoutine;
+  const opsVerificationRuns = opsVerifier.runs;
+  const opsVerificationRunning = opsVerifier.running;
   const llmResult = llmConsole.result;
   const activeSurface = navigation.activeSurface;
 
@@ -105,6 +111,18 @@
     await openSurface('audit');
   }
 
+  async function runDailyReviewRoutine() {
+    await routines.runDailyReview();
+  }
+
+  async function runPlanningReadinessRoutine() {
+    await routines.runPlanningReadiness();
+  }
+
+  async function runOpsVerification() {
+    await opsVerifier.runVerification();
+  }
+
   const canOperateTickets = $derived(hasPermission($effectiveRole, 'request_ticket_review'));
   const canInvokeLlm = $derived(hasPermission($effectiveRole, 'invoke_llm'));
   const canViewAudit = $derived(hasPermission($effectiveRole, 'view_audit_log'));
@@ -175,7 +193,54 @@
       <button type="button" onclick={() => openSurface('scaffolds')}>Open Scaffolds</button>
       <button type="button" onclick={() => openSurface('integrations')}>Open Integrations</button>
       <button type="button" onclick={() => openSurface('audit')}>Run Audit Check</button>
+      <button type="button" onclick={runDailyReviewRoutine} disabled={$activeRoutine !== null}>Run Daily Review</button>
+      <button type="button" onclick={runPlanningReadinessRoutine} disabled={$activeRoutine !== null}>Run Planning Readiness</button>
+      <button type="button" onclick={runOpsVerification} disabled={$opsVerificationRunning}>Run E2E Verification</button>
     </div>
+
+    {#if $activeRoutine}
+      <p class="lcars-label">Routine running: {$activeRoutine}</p>
+    {/if}
+    {#if $opsVerificationRunning}
+      <p class="lcars-label">E2E verification running...</p>
+    {/if}
+
+    <p class="lcars-label">Routine History</p>
+    {#if $routineRuns.length === 0}
+      <p class="lcars-label">No routines executed yet.</p>
+    {:else}
+      <div class="audit-timeline">
+        {#each $routineRuns as run}
+          <div class="audit-timeline__item audit-timeline__item--{run.status}">
+            <div>
+              <strong>{run.routine} ({run.status})</strong>
+              <p>{run.startedAt} -> {run.completedAt}</p>
+              <ul>
+                {#each run.steps as step}
+                  <li>{step.name}: {step.status} - {step.message}</li>
+                {/each}
+              </ul>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <p class="lcars-label">E2E Verification</p>
+    {#if $opsVerificationRuns.length === 0}
+      <p class="lcars-label">No end-to-end verification run yet.</p>
+    {:else}
+      {@const latest = $opsVerificationRuns[0]}
+      <div class="audit-summary {latest.status === 'success' ? 'audit-summary--ok' : latest.status === 'degraded' ? 'audit-summary--warn' : 'status-err'}">
+        <p class="lcars-label">Latest verification: {latest.status}</p>
+        <p>Checked at: {latest.checkedAt}</p>
+        <ul>
+          {#each latest.steps as step}
+            <li>{step.name}: {step.status} - {step.message}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
   </article>
 
   <!-- ── Audit Workflow Panel ───────────────────────────────────────────── -->

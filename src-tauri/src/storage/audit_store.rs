@@ -3,6 +3,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
 use crate::domain::audit::{AuditIntegrityReport, AuditLogEntry};
@@ -193,9 +194,21 @@ impl AuditStore {
                 continue;
             }
 
-            let entry: AuditLogEntry = serde_json::from_str(&raw)
-                .map_err(|err| AppError::Serialization(format!("invalid audit log entry: {err}")))?;
-            entries.push(entry);
+            // Use a streaming deserializer so that lines containing multiple
+            // concatenated JSON objects (a legacy write-path artifact) are
+            // each parsed individually instead of failing with "trailing characters".
+            let mut de = serde_json::Deserializer::from_str(&raw);
+            loop {
+                match AuditLogEntry::deserialize(&mut de) {
+                    Ok(entry) => entries.push(entry),
+                    Err(e) if e.is_eof() => break,
+                    Err(e) => {
+                        return Err(AppError::Serialization(format!(
+                            "invalid audit log entry: {e}"
+                        )))
+                    }
+                }
+            }
         }
 
         Ok(entries)
