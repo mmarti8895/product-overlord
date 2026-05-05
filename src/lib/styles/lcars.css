@@ -1,0 +1,110 @@
+/* ============================================================
+   LCARS Design System — Theme Overrides
+   Applies the [data-theme="lcars-classic"] token layer.
+   Future themes (lcars-dark-matter, lcars-medical, etc.)
+   can add sibling blocks here without touching components.
+   ============================================================ */
+
+/* --------------------------------------------------
+   Classic LCARS Theme  (default, applied to <html>)
+   Re-declares tokens that may differ per theme.
+   Values here intentionally mirror :root defaults so
+   theme switching via JS attribute swap works cleanly.
+   -------------------------------------------------- */
+[data-theme="lcars-classic"] {
+  /* Background */
+  --color-bg:           #050505;
+  --color-bg-elevated:  #0d0d0d;
+  --color-bg-panel:     #111118;
+  --color-bg-overlay:   rgba(5, 5, 5, 0.88);
+
+  /* LCARS Palette */
+  --color-lcars-orange: #ff8a1c;
+  --color-lcars-amber:  #f7c948;
+  --color-lcars-tan:    #c79258;
+  --color-lcars-purple: #9b7bd8;
+  --color-lcars-violet: #6f7fe8;
+  --color-lcars-blue:   #8ea2ff;
+  --color-lcars-cyan:   #55dce7;
+  --color-lcars-green:  #52e85c;
+  --color-lcars-red:    #ff575f;
+  --color-lcars-pink:   #e889b9;
+
+  /* Text */
+  --color-text-primary:   #f6f2d8;
+  --color-text-secondary: #a8a090;
+  --color-text-muted:     #5c574e;
+  --color-text-inverse:   #050505;
+  --color-text-accent:    var(--color-lcars-orange);
+
+  /* Glows tuned for orange primary */
+  --shadow-glow-soft:   0 0 12px rgba(255, 138, 28, 0.25);
+  --shadow-glow-strong: 0 0 24px rgba(255, 138, 28, 0.55);
+}
+
+/* --------------------------------------------------
+   LCARS Structural Helpers
+   Utility classes used by shell + rail components.
+   -------------------------------------------------- */
+
+/* Elbow corner block (top-left rail junction) */
+.lcars-elbow {
+  border-radius: var(--radius-lcars-elbow) 0 0 0;
+  background: var(--color-lcars-orange);
+}
+
+/* Rail segment — horizontal bar */
+.lcars-rail-h {
+  height: 100%;
+  background: var(--color-lcars-tan);
+  border-radius: var(--radius-sm);
+}
+
+/* Rail segment — vertical bar */
+.lcars-rail-v {
+  width: 100%;
+  background: var(--color-lcars-tan);
+  border-radius: var(--radius-sm);
+}
+
+/* Status pill */
+.lcars-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Data label */
+.lcars-label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* Glow accent line */
+.lcars-glow-line {
+  height: 2px;
+  background: var(--color-lcars-orange);
+  box-shadow: var(--shadow-glow-soft);
+  border-radius: var(--radius-pill);
+}
+
+/* --------------------------------------------------
+   Stub: lcars-medical (future)
+   -------------------------------------------------- */
+/* [data-theme="lcars-medical"] { } */
+
+/* --------------------------------------------------
+   Stub: lcars-dark-matter (future)
+   -------------------------------------------------- */
+/* [data-theme="lcars-dark-matter"] { } */

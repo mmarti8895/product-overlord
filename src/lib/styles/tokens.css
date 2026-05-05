@@ -1,0 +1,140 @@
+/* ============================================================
+   LCARS Design System — CSS Custom Properties (Tokens)
+   All UI values MUST reference these variables.
+   No hardcoded colours, sizes, or durations in components.
+   ============================================================ */
+
+:root {
+  /* --------------------------------------------------
+     Colour — Background
+     -------------------------------------------------- */
+  --color-bg:           #050505;
+  --color-bg-elevated:  #0d0d0d;
+  --color-bg-panel:     #111118;
+  --color-bg-overlay:   rgba(5, 5, 5, 0.88);
+
+  /* --------------------------------------------------
+     Colour — LCARS Palette
+     -------------------------------------------------- */
+  --color-lcars-orange: #ff8a1c;
+  --color-lcars-amber:  #f7c948;
+  --color-lcars-tan:    #c79258;
+  --color-lcars-purple: #9b7bd8;
+  --color-lcars-violet: #6f7fe8;
+  --color-lcars-blue:   #8ea2ff;
+  --color-lcars-cyan:   #55dce7;
+  --color-lcars-green:  #52e85c;
+  --color-lcars-red:    #ff575f;
+  --color-lcars-pink:   #e889b9;
+
+  /* --------------------------------------------------
+     Colour — Text
+     -------------------------------------------------- */
+  --color-text-primary:   #f6f2d8;
+  --color-text-secondary: #a8a090;
+  --color-text-muted:     #5c574e;
+  --color-text-inverse:   #050505;
+  --color-text-accent:    var(--color-lcars-orange);
+
+  /* --------------------------------------------------
+     Colour — Status
+     -------------------------------------------------- */
+  --color-status-success: var(--color-lcars-green);
+  --color-status-warning: var(--color-lcars-amber);
+  --color-status-error:   var(--color-lcars-red);
+  --color-status-info:    var(--color-lcars-cyan);
+
+  /* --------------------------------------------------
+     Colour — Border / Separator
+     -------------------------------------------------- */
+  --color-border-subtle:  rgba(246, 242, 216, 0.08);
+  --color-border-default: rgba(246, 242, 216, 0.18);
+  --color-border-strong:  rgba(246, 242, 216, 0.38);
+
+  /* --------------------------------------------------
+     Shadow / Glow
+     -------------------------------------------------- */
+  --shadow-glow-soft:   0 0 12px rgba(255, 138, 28, 0.25);
+  --shadow-glow-strong: 0 0 24px rgba(255, 138, 28, 0.55);
+  --shadow-panel:       0 2px 16px rgba(0, 0, 0, 0.72);
+  --shadow-inset:       inset 0 1px 0 rgba(246, 242, 216, 0.06);
+
+  /* --------------------------------------------------
+     Typography — Font Families
+     -------------------------------------------------- */
+  --font-display: 'Rajdhani', 'Orbitron', 'Exo 2', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  /* --------------------------------------------------
+     Typography — Font Sizes
+     -------------------------------------------------- */
+  --text-xs:     0.625rem;   /* 10px  — status labels */
+  --text-sm:     0.75rem;    /* 12px  — meta, captions */
+  --text-base:   0.875rem;   /* 14px  — body default */
+  --text-md:     1rem;       /* 16px  — standard body */
+  --text-lg:     1.125rem;   /* 18px  — subheadings */
+  --text-xl:     1.375rem;   /* 22px  — section titles */
+  --text-2xl:    1.75rem;    /* 28px  — panel headers */
+  --text-3xl:    2.25rem;    /* 36px  — screen titles */
+  --text-chrono: 3.5rem;     /* 56px  — clock / big data */
+
+  /* --------------------------------------------------
+     Typography — Line Heights
+     -------------------------------------------------- */
+  --leading-tight:  1.2;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+
+  /* --------------------------------------------------
+     Typography — Font Weights
+     -------------------------------------------------- */
+  --weight-regular:   400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+
+  /* --------------------------------------------------
+     Spacing Scale (4px base)
+     -------------------------------------------------- */
+  --space-1:  0.25rem;   /* 4px  */
+  --space-2:  0.5rem;    /* 8px  */
+  --space-3:  0.75rem;   /* 12px */
+  --space-4:  1rem;      /* 16px */
+  --space-5:  1.5rem;    /* 24px */
+  --space-6:  2rem;      /* 32px */
+  --space-7:  3rem;      /* 48px */
+
+  /* --------------------------------------------------
+     Border Radius
+     -------------------------------------------------- */
+  --radius-sm:         4px;
+  --radius-md:         8px;
+  --radius-lg:         16px;
+  --radius-xl:         24px;
+  --radius-pill:       9999px;
+  --radius-lcars-elbow: 56px;   /* signature LCARS curved rail corner */
+
+  /* --------------------------------------------------
+     Layout — Shell Geometry
+     -------------------------------------------------- */
+  --shell-col-nav:      220px;
+  --shell-col-main:     minmax(0, 1fr);
+  --shell-col-telemetry: 320px;
+  --shell-row-top:      96px;
+  --shell-row-main:     minmax(0, 1fr);
+  --shell-row-bottom:   88px;
+  --shell-max-width:    1920px;
+  --bp-min-width:       1024px;
+
+  /* --------------------------------------------------
+     Motion
+     -------------------------------------------------- */
+  --duration-fast:   120ms;
+  --duration-normal: 240ms;
+  --duration-slow:   480ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+}
