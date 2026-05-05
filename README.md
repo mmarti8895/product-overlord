@@ -3,6 +3,9 @@
 An autonomous AI product manager desktop app. product-overlord monitors your Jira board, analyses ticket quality against your Definition of Ready, invokes LLMs to suggest improvements, and surfaces actionable insights — all running locally on your machine with no cloud dependency.
 
 Built with **Tauri 2 + Rust** backend and a **SvelteKit + TypeScript** frontend styled in an LCARS aesthetic.
+---
+
+![Product Overlord](static/product-overlord.png)
 
 ---
 
@@ -330,3 +333,6 @@ Key controls implemented:
 ## Recommended IDE setup
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+
+
+[def]: static/product-overlord.png

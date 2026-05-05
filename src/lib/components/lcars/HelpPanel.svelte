@@ -1,6 +1,17 @@
 <script lang="ts">
-  import { marked } from 'marked';
+  import { marked, type RendererObject } from 'marked';
   import readmeSource from '../../../../README.md?raw';
+
+  // Rewrite image paths: README uses `static/foo.png` but at runtime
+  // SvelteKit serves the static directory from the root as `/foo.png`.
+  const renderer: RendererObject = {
+    image({ href, title, text }) {
+      const resolved = href.startsWith('static/') ? href.slice('static/'.length) : href;
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<img src="/${resolved}" alt="${text}"${titleAttr} class="help-img" />`;
+    },
+  };
+  marked.use({ renderer });
 
   const html = marked.parse(readmeSource) as string;
 </script>
@@ -161,5 +172,13 @@
     border: none;
     border-top: 1px solid var(--color-border-default);
     margin: var(--space-5) 0;
+  }
+
+  .help-body :global(.help-img) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+    margin: var(--space-4) 0;
   }
 </style>
