@@ -44,7 +44,7 @@
 {:else if state.status === 'disabled'}
   <div class="ui-state ui-state--disabled" aria-disabled="true">
     <span class="lcars-label">Unavailable</span>
-    <p>{state.reason}</p>
+    <p>{disabledReason ?? state.reason}</p>
   </div>
 {:else if state.status === 'success'}
   {@render children(state.data)}
@@ -57,28 +57,28 @@
   }
 
   .ui-state--loading {
-    border-color: var(--lcars-cyan, #99ccff);
+    border-color: var(--color-lcars-cyan);
     opacity: 0.7;
   }
 
   .ui-state--empty {
-    border-color: var(--lcars-gold, #ffcc66);
+    border-color: var(--color-lcars-amber);
   }
 
   .ui-state--error {
-    border-color: var(--lcars-red, #cc3333);
+    border-color: var(--color-status-error);
   }
 
   .ui-state--permission-denied {
-    border-color: var(--lcars-orange, #ff9900);
+    border-color: var(--color-lcars-orange);
   }
 
   .ui-state--suggest-only {
-    border-color: var(--lcars-cyan, #99ccff);
+    border-color: var(--color-lcars-cyan);
   }
 
   .ui-state--disabled {
-    border-color: var(--lcars-gold, #ffcc66);
+    border-color: var(--color-lcars-amber);
     opacity: 0.5;
   }
 

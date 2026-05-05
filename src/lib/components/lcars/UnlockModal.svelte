@@ -63,9 +63,14 @@
       errorMsg = 'Principal ID is required.';
       return;
     }
+    const ttlNumber = Number(ttl);
+    if (!Number.isFinite(ttlNumber) || ttlNumber < 1 || ttlNumber > 480) {
+      errorMsg = 'TTL must be between 1 and 480 minutes.';
+      return;
+    }
     pending = true;
     errorMsg = '';
-    const result = await session.unlock(principalId.trim(), role, ttl);
+    const result = await session.unlock(principalId.trim(), role, Math.floor(ttlNumber));
     pending = false;
     if (result.status === 'success') {
       onclose();
@@ -143,53 +148,53 @@
   }
 
   .unlock-modal {
-    background: var(--color-surface, #1a1a2e);
-    border: 1px solid var(--lcars-cyan, #99ccff);
-    padding: var(--space-6, 1.5rem);
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-lcars-cyan);
+    padding: var(--space-6);
     min-width: 340px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3, 0.75rem);
+    gap: var(--space-3);
   }
 
   .unlock-modal input,
   .unlock-modal select {
     width: 100%;
-    padding: var(--space-2, 0.5rem);
-    background: var(--color-bg, #0d0d1a);
-    color: var(--color-text-primary, #f6f2d8);
-    border: 1px solid var(--lcars-cyan, #99ccff);
+    padding: var(--space-2);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-lcars-cyan);
   }
 
   .unlock-modal select {
-    padding-right: calc(var(--space-3, 0.75rem) * 2 + 12px);
+    padding-right: calc(var(--space-3) * 2 + 12px);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a1c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right var(--space-3, 0.75rem) center;
+    background-position: right var(--space-3) center;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
   }
 
   .unlock-modal__error {
-    color: var(--lcars-red, #cc3333);
-    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-status-error);
+    font-size: var(--text-sm);
   }
 
   .unlock-modal__actions {
     display: flex;
-    gap: var(--space-3, 0.75rem);
+    gap: var(--space-3);
     justify-content: flex-end;
   }
 
   .lcars-btn {
-    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    background: var(--lcars-cyan, #99ccff);
-    color: #000;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-lcars-cyan);
+    color: var(--color-text-inverse);
     border: none;
     cursor: pointer;
     font-family: inherit;
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -201,7 +206,7 @@
 
   .lcars-btn--secondary {
     background: transparent;
-    color: var(--lcars-cyan, #99ccff);
-    border: 1px solid var(--lcars-cyan, #99ccff);
+    color: var(--color-lcars-cyan);
+    border: 1px solid var(--color-lcars-cyan);
   }
 </style>

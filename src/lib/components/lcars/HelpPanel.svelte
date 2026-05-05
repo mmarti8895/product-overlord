@@ -1,19 +1,30 @@
 <script lang="ts">
+  import DOMPurify from 'dompurify';
   import { marked, type RendererObject } from 'marked';
   import readmeSource from '../../../../README.md?raw';
+
+  function escapeAttr(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
 
   // Rewrite image paths: README uses `static/foo.png` but at runtime
   // SvelteKit serves the static directory from the root as `/foo.png`.
   const renderer: RendererObject = {
     image({ href, title, text }) {
       const resolved = href.startsWith('static/') ? href.slice('static/'.length) : href;
-      const titleAttr = title ? ` title="${title}"` : '';
-      return `<img src="/${resolved}" alt="${text}"${titleAttr} class="help-img" />`;
+      const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
+      return `<img src="/${escapeAttr(resolved)}" alt="${escapeAttr(text)}"${titleAttr} class="help-img" />`;
     },
   };
   marked.use({ renderer });
 
-  const html = marked.parse(readmeSource) as string;
+  const rawHtml = marked.parse(readmeSource) as string;
+  const html = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
 </script>
 
 <article class="help-panel">
