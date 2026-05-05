@@ -5,6 +5,7 @@
   import AppShell from '../lib/components/lcars/AppShell.svelte';
   import UnlockModal from '../lib/components/lcars/UnlockModal.svelte';
   import IntegrationHub from '../lib/components/lcars/IntegrationHub.svelte';
+  import HelpPanel from '../lib/components/lcars/HelpPanel.svelte';
   import { hub } from '../lib/stores/hub';
   import { session, effectiveRole, secondsRemaining } from '../lib/stores/session';
   import { indexHealth } from '../lib/stores/indexHealth';
@@ -181,6 +182,14 @@
         <span>{item.label}</span>
       </button>
     {/each}
+    <hr class="rail-nav__divider" />
+    <button
+      class="rail-nav__item {$activeSurface === 'help' ? 'rail-nav__item--active' : ''}"
+      type="button"
+      onclick={() => activateSurface('help')}
+    >
+      <span>Help</span>
+    </button>
   </div>
 {/snippet}
 
@@ -360,6 +369,12 @@
   .rail-nav__item--active {
     border: 1px solid var(--color-lcars-orange);
     box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.25) inset;
+  }
+
+  .rail-nav__divider {
+    border: none;
+    border-top: 1px solid var(--color-border-default);
+    margin: var(--space-2) 0;
   }
 
   .rail-telemetry {

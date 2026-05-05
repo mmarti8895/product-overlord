@@ -6,7 +6,7 @@ import { indexHealth } from '$lib/stores/indexHealth';
 import { policyState } from '$lib/stores/policy';
 import { auditStore } from '$lib/stores/audit';
 
-export type ShellSurface = 'command' | 'tickets' | 'scaffolds' | 'integrations' | 'audit';
+export type ShellSurface = 'command' | 'tickets' | 'scaffolds' | 'integrations' | 'audit' | 'help';
 
 export interface ActivationResult {
   surface: ShellSurface;
@@ -67,6 +67,17 @@ function createNavigationCoordinator() {
           surface,
           status: 'success' as const,
           message: 'Integration hub opened.',
+        };
+        lastActivation.set(result);
+        return result;
+      }
+
+      case 'help': {
+        hub.close();
+        const result = {
+          surface,
+          status: 'success' as const,
+          message: 'Help documentation loaded.',
         };
         lastActivation.set(result);
         return result;

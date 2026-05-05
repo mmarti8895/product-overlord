@@ -12,6 +12,7 @@
   import { opsVerifier } from '$lib/stores/opsVerifier';
   import { routines } from '$lib/stores/routines';
   import { navigation, type ShellSurface } from '$lib/stores/navigation';
+  import HelpPanel from '$lib/components/lcars/HelpPanel.svelte';
   import type { LlmProvider } from '$lib/stores/llmConsole';
   import type { DorItemState, EffortBand } from '$lib/stores/dor';
 
@@ -134,6 +135,9 @@
   });
 </script>
 
+{#if $activeSurface === 'help'}
+  <HelpPanel />
+{:else}
 <section class="command-deck">
   <!-- ── Command Workflow Panel ─────────────────────────────────────────── -->
   <article class="panel command-panel">
@@ -521,6 +525,7 @@
     {/if}
   </article>
 </section>
+{/if}
 
 <style>
   .command-deck {
@@ -754,11 +759,23 @@
   select {
     width: 100%;
     padding: var(--space-2, 0.5rem);
+    padding-right: calc(var(--space-3, 0.75rem) * 2 + 12px);
     background: var(--color-bg-elevated);
-    color: inherit;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a1c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3, 0.75rem) center;
+    color: var(--color-text-primary, #f6f2d8);
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-md);
     font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .criteria-list {

@@ -157,8 +157,18 @@
     width: 100%;
     padding: var(--space-2, 0.5rem);
     background: var(--color-bg, #0d0d1a);
-    color: inherit;
+    color: var(--color-text-primary, #f6f2d8);
     border: 1px solid var(--lcars-cyan, #99ccff);
+  }
+
+  .unlock-modal select {
+    padding-right: calc(var(--space-3, 0.75rem) * 2 + 12px);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a1c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3, 0.75rem) center;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
   }
 
   .unlock-modal__error {

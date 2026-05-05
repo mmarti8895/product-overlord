@@ -836,9 +836,24 @@
   .hub-form-grid select {
     border: 1px solid var(--color-border-default, #333);
     background: var(--color-bg-elevated, #111);
-    color: inherit;
+    color: var(--color-text-primary, #f6f2d8);
     border-radius: var(--radius-sm, 4px);
     padding: var(--space-2);
+  }
+
+  .hub-form-grid select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a1c' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3, 0.75rem) center;
+    padding-right: calc(var(--space-3, 0.75rem) * 2 + 12px);
+    cursor: pointer;
+  }
+
+  .hub-form-grid select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .hub-actions {

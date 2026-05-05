@@ -18,6 +18,149 @@ Built with **Tauri 2 + Rust** backend and a **SvelteKit + TypeScript** frontend 
 
 ---
 
+## Application surfaces
+
+The UI is divided into five navigation surfaces. Switching surfaces always triggers side effects — it is not a passive view swap.
+
+### Command
+The default landing surface. Clicking **Command** (or opening the app) immediately refreshes three health reads in parallel:
+- Credential health for all stored integrations
+- Index store reachability (LanceDB)
+- Active policy / current role from the session
+
+Use this surface to get a snapshot of system state, trigger daily review and planning readiness routines, or launch the E2E ops verifier.
+
+### Tickets
+Activating **Tickets** calls the Jira integration and hydrates the ticket review queue. The queue shows open tickets sorted by priority. Selecting a ticket loads its DOR scaffold (if one has been created) and makes it the active context for the Scaffolds surface.
+
+### Scaffolds
+Activating **Scaffolds** ensures the ticket queue is loaded, then opens the scaffold workspace for the selected ticket. A scaffold contains:
+- **Definition of Ready checklist** — toggle items complete/incomplete
+- **Acceptance criteria** — enter one criterion per line
+- **Effort estimate** — band (XS–XL), optional story points, confidence %, and rationale
+
+Changes are persisted to the Rust backend immediately on save. If no scaffold exists for the active ticket, create one with **Create Scaffold**.
+
+### Audit
+Activating **Audit** (or clicking **Run Integrity Check**) immediately runs `cmd_verify_audit_integrity` on the Rust backend. It does not just navigate — it triggers a live SHA-256 hash chain scan of the full audit log and reports:
+- Total entries vs. chained (valid) entries
+- First invalid line number and reason, when degraded
+- A timestamped timeline of every past verification run in the current session
+
+> Audit actions require an active unlocked session. The button is disabled when the session is locked or expired.
+
+### Integrations
+Activating **Integrations** opens the integration hub overlay (not a page navigation). The hub has three tabs:
+- **LLM Connections** — configure and test LLM provider endpoints
+- **Jira MCP** — connect and validate the Jira credential and project key
+- **GitHub Repositories** — connect GitHub repos for repository index population
+
+---
+
+## Workflows
+
+### Authenticate / manage session access
+
+All protected operations require an active session. The session starts locked on every app launch.
+
+1. Click the **Role** pill in the bottom status bar (shows `LOCKED` when no session is active).
+2. Enter a **Principal ID** (your username or identifier).
+3. Select a **Role**: Read Only, Operator, or Admin (see role matrix below).
+4. Set a **TTL** in minutes (default 60, max 480).
+5. Click **Unlock**.
+
+The pill updates to show your current role and a live countdown timer. When the TTL expires the session auto-locks and you are prompted to re-authenticate.
+
+| Role | Can do |
+|---|---|
+| **Read Only** | View credentials, tickets, scaffolds, audit log, system config |
+| **Operator** | Everything above + add/delete credentials, configure LLM providers, invoke LLM, export audit log, manage notification rules, trigger repository index |
+| **Admin** | Everything above + assign roles |
+
+To lock early, click the role pill and cancel, or let the TTL expire naturally.
+
+---
+
+### Prepare tickets for work
+
+**Goal:** Take a Jira ticket from backlog to ready-for-development by filling in its scaffold.
+
+1. Unlock the session as **Operator** or higher.
+2. Click **Tickets** in the nav rail — the queue loads from Jira.
+3. Select a ticket from the queue to make it the active context.
+4. Click **Scaffolds** in the nav rail — the scaffold workspace opens.
+5. If no scaffold exists, click **Create Scaffold**.
+6. Work through the **Definition of Ready** checklist — toggle each item complete.
+7. Enter **Acceptance Criteria** (one per line) and click **Save Criteria**.
+8. Fill in the **Effort Estimate**: band, optional story points, confidence, and rationale, then click **Save Estimate**.
+9. The scaffold is immediately persisted. Return to Tickets to select the next ticket.
+
+---
+
+### Understand repositories
+
+**Goal:** Bootstrap a local vector index over your codebase for semantic search.
+
+1. Unlock the session as **Operator** or higher.
+2. Click **Integrations** in the nav rail to open the hub.
+3. Open the **GitHub Repositories** tab.
+4. Add a GitHub credential (API token) with an appropriate label.
+5. Enter the repository URL and branch, then save.
+6. Return to the **Command** surface and verify **Index Reachability** shows `Reachable`.
+7. If not initialized, click **Initialize Index Store** — this bootstraps the LanceDB vector store at `~/.product-overlord/index/`.
+8. Use the **LLM Console** on the Command surface to run semantic prompts against the indexed content once an LLM provider is configured.
+
+---
+
+### Integrate LLMs
+
+**Goal:** Connect one or more LLM providers so the app can invoke models for ticket analysis.
+
+1. Unlock the session as **Operator** or higher.
+2. Click **Integrations** → **LLM Connections** tab.
+3. Select a provider from the dropdown (OpenAI, Anthropic, Gemini, Ollama, Atlassian Rovo).
+4. For cloud providers:
+   - Enter a **Credential Label** and **API Key**, then click **Save Credential**.
+   - Select the saved credential from the dropdown.
+5. For **Ollama** (local): no key required — set the base URL (e.g. `http://localhost:11434`).
+6. Enter the **Model name** (e.g. `gpt-4o`, `claude-3-5-sonnet-20241022`, `llama3`).
+7. Optionally enter a **Base URL** for custom endpoints.
+8. Click **Save Provider**.
+9. The provider appears in the configured list. A health indicator shows `configured` or `unreachable`.
+
+To invoke a model from the **Command** surface:
+1. Ensure an LLM provider is configured and a ticket is selected.
+2. Edit the prompt in the **LLM Console** panel.
+3. Select the target provider from the dropdown.
+4. Click **Run Preview**.
+
+> Phase 1 note: LLM invocations return stub responses. Live model inference is wired in Phase 2.
+
+---
+
+### Manage integrations
+
+**Goal:** Add, rotate, or remove credentials for Jira, GitHub, and LLM providers.
+
+**Add a credential**
+1. Unlock as **Operator** or higher.
+2. Open **Integrations** → relevant tab.
+3. Fill in the label, secret, and optional base URL, then click **Save Credential**.
+4. The secret is written directly to the OS keychain — it is never stored on disk.
+
+**Check credential health**
+1. Open **Integrations** → relevant tab.
+2. Existing credentials show a health indicator (`valid`, `invalid`, `missing`, `unknown`).
+3. Click **Check Health** next to any entry to re-validate against the provider.
+
+**Delete a credential**
+1. Locate the credential in the relevant tab.
+2. Click **Delete** — this removes the keychain entry and the in-memory metadata.
+
+**Rotate a credential** — delete the existing entry, then add a new one with the same label or a new one.
+
+---
+
 ## Getting started
 
 ### Prerequisites
