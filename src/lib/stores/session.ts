@@ -15,55 +15,6 @@ export interface SessionStatus {
   expired: boolean;
 }
 
-// ─── Role → Permission mapping (mirrors Rust authz logic) ────────────────────
-
-const ROLE_PERMISSIONS: Record<Role, Set<string>> = {
-  read_only: new Set([
-    'view_credential_list',
-    'check_credential_health',
-    'view_notification_rules',
-    'view_repository_index',
-    'view_jira_tickets',
-    'view_audit_log',
-    'view_system_config',
-  ]),
-  operator: new Set([
-    'view_credential_list',
-    'add_credential',
-    'delete_credential',
-    'check_credential_health',
-    'view_notification_rules',
-    'manage_notification_rules',
-    'view_repository_index',
-    'trigger_repository_index',
-    'view_jira_tickets',
-    'request_ticket_review',
-    'configure_llm_provider',
-    'invoke_llm',
-    'view_audit_log',
-    'view_system_config',
-  ]),
-  admin: new Set([
-    'view_credential_list',
-    'add_credential',
-    'delete_credential',
-    'check_credential_health',
-    'view_notification_rules',
-    'manage_notification_rules',
-    'view_repository_index',
-    'trigger_repository_index',
-    'view_jira_tickets',
-    'request_ticket_review',
-    'configure_llm_provider',
-    'invoke_llm',
-    'view_audit_log',
-    'export_audit_log',
-    'assign_roles',
-    'view_system_config',
-    'change_system_config',
-  ]),
-};
-
 // ─── Locked state sentinel ────────────────────────────────────────────────────
 
 const LOCKED_STATUS: SessionStatus = {
@@ -170,7 +121,3 @@ export const secondsRemaining = derived(session, ($s): number | null => {
   const diff = Math.floor((new Date($s.expires_at).getTime() - Date.now()) / 1000);
   return Math.max(0, diff);
 });
-
-export function hasPermission(role: Role, permission: string): boolean {
-  return ROLE_PERMISSIONS[role]?.has(permission) ?? false;
-}

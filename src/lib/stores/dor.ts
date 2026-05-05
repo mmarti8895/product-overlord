@@ -15,8 +15,17 @@ export interface TicketScaffold {
   ticket_key: string;
   definition_of_ready: DorChecklistItem[];
   acceptance_criteria: string[];
-  effort_estimate: unknown | null;
+  effort_estimate: EffortEstimate | null;
   updated_at: string;
+}
+
+export type EffortBand = 'trivial' | 'small' | 'medium' | 'large' | 'x_large';
+
+export interface EffortEstimate {
+  band: EffortBand;
+  story_points: number | null;
+  confidence: number;
+  rationale: string | null;
 }
 
 // ─── DoR tri-state ─────────────────────────────────────────────────────────
@@ -40,6 +49,8 @@ export interface ScaffoldView {
   ticketKey: string;
   dorItems: DorItemView[];
   acceptanceCriteria: string[];
+  effortEstimate: EffortEstimate | null;
+  updatedAt: string;
   /** Ratio of required items in Complete state. */
   completionRatio: number;
 }
@@ -74,6 +85,8 @@ function toScaffoldView(raw: TicketScaffold): ScaffoldView {
     ticketKey: raw.ticket_key,
     dorItems,
     acceptanceCriteria: raw.acceptance_criteria.map(sanitise),
+    effortEstimate: raw.effort_estimate,
+    updatedAt: raw.updated_at,
     completionRatio,
   };
 }
@@ -82,6 +95,23 @@ function toScaffoldView(raw: TicketScaffold): ScaffoldView {
 
 function createDorStore() {
   const scaffold = writable<UIState<ScaffoldView>>(empty());
+  const scaffolds = writable<UIState<ScaffoldView[]>>(empty());
+  let initialised = false;
+
+  async function list() {
+    scaffolds.set(loading());
+    const result = await invoke<TicketScaffold[]>('cmd_list_ticket_scaffolds');
+    if (result.status === 'success') {
+      const items = result.data.map(toScaffoldView);
+      scaffolds.set(items.length > 0 ? success(items) : empty());
+    } else if (result.status === 'error') {
+      scaffolds.set(err(result.message));
+    } else if (result.status === 'permission_denied') {
+      scaffolds.set({ status: 'permission_denied', message: result.message });
+    } else {
+      scaffolds.set(empty());
+    }
+  }
 
   async function load(ticketKey: string) {
     scaffold.set(loading());
@@ -112,11 +142,53 @@ function createDorStore() {
     // Update only on confirmed backend response — no optimistic update.
     if (result.status === 'success') {
       scaffold.set(success(toScaffoldView(result.data)));
+      await list();
     }
     return result;
   }
 
-  return { scaffold, load, setItemStatus };
+  async function create(ticketKey: string) {
+    const result = await invoke<TicketScaffold>('cmd_create_ticket_scaffold', {
+      ticket_key: ticketKey,
+    });
+    if (result.status === 'success') {
+      scaffold.set(success(toScaffoldView(result.data)));
+      await list();
+    }
+    return result;
+  }
+
+  async function setAcceptanceCriteria(ticketKey: string, criteria: string[]) {
+    const result = await invoke<TicketScaffold>('cmd_set_acceptance_criteria', {
+      ticket_key: ticketKey,
+      criteria,
+    });
+    if (result.status === 'success') {
+      scaffold.set(success(toScaffoldView(result.data)));
+      await list();
+    }
+    return result;
+  }
+
+  async function setEffortEstimate(ticketKey: string, estimate: EffortEstimate) {
+    const result = await invoke<TicketScaffold>('cmd_set_effort_estimate', {
+      ticket_key: ticketKey,
+      estimate,
+    });
+    if (result.status === 'success') {
+      scaffold.set(success(toScaffoldView(result.data)));
+      await list();
+    }
+    return result;
+  }
+
+  function init() {
+    if (initialised) return;
+    initialised = true;
+    list();
+  }
+
+  return { scaffold, scaffolds, list, load, create, setItemStatus, setAcceptanceCriteria, setEffortEstimate, init };
 }
 
 export const dorStore = createDorStore();

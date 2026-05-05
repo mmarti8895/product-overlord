@@ -18,10 +18,10 @@ function createTicketQueueStore() {
         activeKey.set(null);
       } else {
         list.set(success(tickets));
-        // Select first ticket by default if nothing is selected.
-        if (get(activeKey) === null) {
-          activeKey.set(tickets[0].key);
-        }
+        const selected = get(activeKey);
+        const selectedIsStillPresent = selected !== null && tickets.some((t) => t.key === selected);
+        // Queue-first deterministic fallback: if prior selection is missing, select first.
+        activeKey.set(selectedIsStillPresent ? selected : tickets[0].key);
       }
     } catch (e) {
       list.set(err(String(e)));
@@ -29,6 +29,9 @@ function createTicketQueueStore() {
   }
 
   function select(key: string) {
+    const state = get(list);
+    if (state.status !== 'success') return;
+    if (!state.data.some((t) => t.key === key)) return;
     activeKey.set(key);
   }
 

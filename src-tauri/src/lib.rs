@@ -29,13 +29,36 @@ use state::AppState;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Emitter, Manager,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+/// Update the system-tray tooltip and icon to reflect overall integration health.
+/// Called from the frontend after each credential health poll.
+/// status: "ok" | "degraded" | "error"
+#[tauri::command]
+fn cmd_set_tray_status(app: tauri::AppHandle, status: String) -> Result<(), String> {
+    let tooltip = match status.as_str() {
+        "degraded" => "Product Overlord \u{2014} \u{26a0} Some connections degraded",
+        "error"    => "Product Overlord \u{2014} \u{2717} Connections unavailable",
+        _          => "Product Overlord \u{2014} All connections healthy",
+    };
+
+    let icon = match status.as_str() {
+        "degraded" | "error" => tauri::include_image!("icons/tray-degraded.png"),
+        _                    => tauri::include_image!("icons/tray-normal.png"),
+    };
+
+    if let Some(tray) = app.tray_by_id("main_tray") {
+        tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
+        tray.set_icon(Some(icon)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -45,6 +68,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            cmd_set_tray_status,
             cmd_add_credential,
             cmd_delete_credential,
             cmd_check_credential_health,
@@ -73,28 +97,60 @@ pub fn run() {
         ])
         .setup(|app| {
             // ── System tray ──────────────────────────────────────────────────
+            let hub_open   = MenuItem::with_id(app, "hub_open",   "Open Integration Hub", true, None::<&str>)?;
+            let hub_llm    = MenuItem::with_id(app, "hub_llm",    "  LLM Connections",    true, None::<&str>)?;
+            let hub_jira   = MenuItem::with_id(app, "hub_jira",   "  Jira MCP",           true, None::<&str>)?;
+            let hub_github = MenuItem::with_id(app, "hub_github", "  GitHub Repositories",true, None::<&str>)?;
+            let sep1 = PredefinedMenuItem::separator(app)?;
             let show_hide = MenuItem::with_id(app, "show_hide", "Show / Hide", true, None::<&str>)?;
-            let sep = PredefinedMenuItem::separator(app)?;
+            let sep2 = PredefinedMenuItem::separator(app)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_hide, &sep, &quit])?;
+            let menu = Menu::with_items(app, &[
+                &hub_open, &hub_llm, &hub_jira, &hub_github,
+                &sep1, &show_hide, &sep2, &quit,
+            ])?;
 
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id("main_tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show_hide" => {
+                .on_menu_event(|app, event| {
+                    let show_window = |app: &tauri::AppHandle| {
                         if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    };
+                    match event.id.as_ref() {
+                        "hub_open" => {
+                            show_window(app);
+                            let _ = app.emit("hub://open", "llm");
+                        }
+                        "hub_llm" => {
+                            show_window(app);
+                            let _ = app.emit("hub://open", "llm");
+                        }
+                        "hub_jira" => {
+                            show_window(app);
+                            let _ = app.emit("hub://open", "jira");
+                        }
+                        "hub_github" => {
+                            show_window(app);
+                            let _ = app.emit("hub://open", "github");
+                        }
+                        "show_hide" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
                             }
                         }
+                        "quit" => app.exit(0),
+                        _ => {}
                     }
-                    "quit" => app.exit(0),
-                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {

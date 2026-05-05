@@ -10,7 +10,11 @@
   import { indexHealth } from '../lib/stores/indexHealth';
   import { policyState, rbacEnforced } from '../lib/stores/policy';
   import { credentials, credentialSummary } from '../lib/stores/credentials';
-  import { registerErrorNotifier } from '../lib/tauri/invoke';
+  import { navigation, type ShellSurface } from '../lib/stores/navigation';
+  import { registerErrorNotifier, invoke } from '../lib/tauri/invoke';
+  import { listen } from '@tauri-apps/api/event';
+  import { get } from 'svelte/store';
+  import type { HubTab } from '../lib/stores/hub';
   import type { Snippet } from 'svelte';
 
   interface Props {
@@ -24,13 +28,14 @@
   let notification = $state<{ type: string; message: string } | null>(null);
   let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const navItems = [
-    { label: 'Command', value: 'overview' },
+  const navItems: Array<{ label: string; value: ShellSurface }> = [
+    { label: 'Command', value: 'command' },
     { label: 'Tickets', value: 'tickets' },
     { label: 'Scaffolds', value: 'scaffolds' },
     { label: 'Integrations', value: 'integrations' },
     { label: 'Audit', value: 'audit' }
   ];
+  const activeSurface = navigation.activeSurface;
 
   function showNotification(type: string, message: string) {
     notification = { type, message };
@@ -41,6 +46,13 @@
   function dismissNotification() {
     notification = null;
     if (notificationTimer) clearTimeout(notificationTimer);
+  }
+
+  async function activateSurface(surface: ShellSurface) {
+    const result = await navigation.activate(surface);
+    if (surface === 'audit') {
+      showNotification(result.status, result.message);
+    }
   }
 
   // Wire global error notifier (Slice 3 hook, active from Slice 1).
@@ -82,11 +94,48 @@
     policyState.refresh();
     credentials.refresh();
 
+    let unlisten: (() => void) | null = null;
+    const init = async () => {
+      unlisten = await listen<HubTab>('hub://open', (event) => {
+        hub.open(event.payload);
+      });
+    };
+    init();
+
+    // ── Health polling ───────────────────────────────────────────────────
+    async function pollHealth() {
+      await credentials.refresh();
+      const state = get(credentials);
+      if (state.status === 'success') {
+        for (const item of state.data) {
+          await credentials.checkHealth(item.credential.id);
+        }
+      }
+      const summary = get(credentialSummary);
+      let status: string;
+      if (summary.total === 0 || summary.healthy === summary.total) {
+        status = 'ok';
+      } else if (summary.healthy === 0) {
+        status = 'error';
+      } else {
+        status = 'degraded';
+      }
+      await invoke<void>('cmd_set_tray_status', { status });
+    }
+
+    // Run once after initial load, then every 60 s.
+    pollHealth();
+    const healthTimer = setInterval(pollHealth, 60_000);
+
     const timer = setInterval(() => {
       now = new Date();
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      if (unlisten) unlisten();
+      clearInterval(healthTimer);
+      clearInterval(timer);
+    };
   });
 </script>
 
@@ -111,9 +160,9 @@
     <p class="lcars-label rail-nav__header">Navigation</p>
     {#each navItems as item}
       <button
-        class="rail-nav__item"
+        class="rail-nav__item {$activeSurface === item.value ? 'rail-nav__item--active' : ''}"
         type="button"
-        onclick={() => { if (item.value === 'integrations') hub.open('llm'); }}
+        onclick={() => activateSurface(item.value)}
       >
         <span>{item.label}</span>
       </button>
@@ -289,8 +338,13 @@
     border-radius: var(--radius-md);
     background: linear-gradient(90deg, var(--color-lcars-tan), var(--color-lcars-orange));
     color: var(--color-text-inverse);
-    cursor: default;
+    cursor: pointer;
     box-shadow: var(--shadow-panel);
+  }
+
+  .rail-nav__item--active {
+    border: 1px solid var(--color-lcars-orange);
+    box-shadow: 0 0 0 1px rgba(255, 153, 0, 0.25) inset;
   }
 
   .rail-nav__item small {

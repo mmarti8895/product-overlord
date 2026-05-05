@@ -4,7 +4,8 @@
   import { hub, type HubTab } from '$lib/stores/hub';
   import { invoke, type UIState, empty, loading, success, err } from '$lib/tauri/invoke';
   import { credentials } from '$lib/stores/credentials';
-  import { effectiveRole, hasPermission } from '$lib/stores/session';
+  import { effectiveRole } from '$lib/stores/session';
+  import { hasPermission } from '$lib/stores/capabilities';
 
   type LlmProvider = 'open_ai' | 'anthropic' | 'ollama' | 'gemini' | 'atlassian_rovo';
 
@@ -40,6 +41,8 @@
   let llmModel = $state('');
   let llmBaseUrl = $state('');
   let llmCredentialId = $state('');
+  let llmCredentialLabel = $state('');
+  let llmSecretInput = $state<HTMLInputElement | null>(null);
 
   let jiraBaseUrl = $state('');
   let jiraProjectKey = $state('');
@@ -66,6 +69,8 @@
       ['open_ai', 'anthropic', 'ollama', 'gemini', 'atlassian_rovo'].includes(v.credential.provider),
     );
   });
+
+  const selectedProviderCredentials = $derived.by(() => llmCredentials.filter((v) => v.credential.provider === llmProvider));
 
   const jiraCredentials = $derived.by(() => {
     if ($credentials.status !== 'success') return [];
@@ -132,11 +137,23 @@
       return;
     }
 
+    let normalisedBaseUrl: string | null = null;
+    if (llmBaseUrl.trim()) {
+      const urlResult = await invoke<UrlValidationResult>('cmd_validate_base_url', { raw: llmBaseUrl.trim() });
+      if (urlResult.status !== 'success') {
+        llmFeedback = urlResult.status === 'error' || urlResult.status === 'permission_denied'
+          ? urlResult.message
+          : 'Invalid base URL.';
+        return;
+      }
+      normalisedBaseUrl = urlResult.data.normalised;
+    }
+
     const res = await invoke<LlmProviderConfig>('cmd_configure_llm_provider', {
       config: {
         provider: llmProvider,
         model: llmModel.trim(),
-        base_url: llmBaseUrl.trim() ? llmBaseUrl.trim() : null,
+        base_url: normalisedBaseUrl,
         credential_id: llmCredentialId || null,
         enabled: true,
       },
@@ -147,9 +164,64 @@
       llmModel = '';
       llmBaseUrl = '';
       llmCredentialId = '';
+      await refreshCredentialHealth();
       await refreshLlmConfigs();
     } else if (res.status === 'error' || res.status === 'permission_denied') {
       llmFeedback = res.message;
+    }
+  }
+
+  async function addLlmCredential() {
+    llmFeedback = '';
+
+    if (!canAddCredential) {
+      llmFeedback = 'Insufficient permissions to save LLM credentials.';
+      return;
+    }
+
+    if (llmProvider === 'ollama') {
+      llmFeedback = 'Ollama does not require an API credential. Configure provider directly.';
+      return;
+    }
+
+    if (!llmCredentialLabel.trim()) {
+      llmFeedback = 'Credential label is required.';
+      return;
+    }
+
+    const secret = llmSecretInput?.value ?? '';
+    if (!secret.trim()) {
+      llmFeedback = 'API credential secret is required for this provider.';
+      return;
+    }
+
+    let normalisedBaseUrl: string | undefined;
+    if (llmBaseUrl.trim()) {
+      const urlResult = await invoke<UrlValidationResult>('cmd_validate_base_url', { raw: llmBaseUrl.trim() });
+      if (urlResult.status !== 'success') {
+        llmFeedback = urlResult.status === 'error' || urlResult.status === 'permission_denied'
+          ? urlResult.message
+          : 'Invalid base URL.';
+        return;
+      }
+      normalisedBaseUrl = urlResult.data.normalised;
+    }
+
+    const addRes = await credentials.addCredential(
+      llmProvider,
+      llmCredentialLabel.trim(),
+      secret,
+      normalisedBaseUrl,
+    );
+    if (llmSecretInput) llmSecretInput.value = '';
+
+    if (addRes.status === 'success') {
+      llmCredentialId = addRes.data.id;
+      llmCredentialLabel = '';
+      llmFeedback = `Saved ${providerDisplayName(llmProvider)} credential and linked it.`;
+      await refreshCredentialHealth();
+    } else if (addRes.status === 'error' || addRes.status === 'permission_denied') {
+      llmFeedback = addRes.message;
     }
   }
 
@@ -173,6 +245,7 @@
     }
 
     llmFeedback = `${providerDisplayName(target)} is now active.`;
+    await refreshCredentialHealth();
     await refreshLlmConfigs();
   }
 
@@ -202,6 +275,7 @@
 
     if (disableRes.status === 'success') {
       llmFeedback = `${providerDisplayName(cfg.provider)} removed.`;
+      await refreshCredentialHealth();
       await refreshLlmConfigs();
     } else if (disableRes.status === 'error' || disableRes.status === 'permission_denied') {
       llmFeedback = disableRes.message;
@@ -445,6 +519,9 @@
           {#if !canConfigureLlm}
             <p class="hub-permission-notice">Read-only access — LLM configuration requires Operator or Admin role.</p>
           {/if}
+          {#if !canAddCredential}
+            <p class="hub-permission-notice">Read-only access — LLM credential management requires Operator or Admin role.</p>
+          {/if}
           <div class="hub-form-grid">
             <label for="llm-provider">Provider</label>
             <select id="llm-provider" bind:value={llmProvider} disabled={!canConfigureLlm}>
@@ -459,18 +536,42 @@
             <label for="llm-base-url">Base URL (optional)</label>
             <input id="llm-base-url" type="url" bind:value={llmBaseUrl} placeholder="https://api.example.com" disabled={!canConfigureLlm} />
 
+            <label for="llm-credential-label">New Credential Label</label>
+            <input
+              id="llm-credential-label"
+              type="text"
+              bind:value={llmCredentialLabel}
+              placeholder="prod-openai"
+              disabled={!canAddCredential || llmProvider === 'ollama'}
+            />
+
+            <label for="llm-credential-secret">New Credential Secret</label>
+            <input
+              id="llm-credential-secret"
+              type="password"
+              bind:this={llmSecretInput}
+              autocomplete="off"
+              disabled={!canAddCredential || llmProvider === 'ollama'}
+            />
+
             <label for="llm-credential">Credential (optional)</label>
             <select id="llm-credential" bind:value={llmCredentialId} disabled={!canConfigureLlm}>
               <option value="">None</option>
-              {#each llmCredentials as cred}
+              {#each selectedProviderCredentials as cred}
                 <option value={cred.credential.id}>{cred.credential.label}</option>
               {/each}
             </select>
           </div>
 
+          {#if llmProvider === 'ollama'}
+            <p class="hub-small">Ollama uses local runtime access and typically does not require API credentials.</p>
+          {/if}
+
           <div class="hub-actions">
+            <button type="button" onclick={addLlmCredential} disabled={!canAddCredential || llmProvider === 'ollama'}>Save Credential</button>
             <button type="button" onclick={addLlmProvider} disabled={!canConfigureLlm}>Save Provider</button>
             <button type="button" onclick={refreshLlmConfigs}>Refresh</button>
+            <button type="button" onclick={refreshCredentialHealth} disabled={!canCheckCredentialHealth}>Refresh Health</button>
           </div>
 
           {#if llmFeedback}

@@ -3,10 +3,15 @@
   import { ticketQueue } from '$lib/stores/ticketQueue';
   import { dorStore } from '$lib/stores/dor';
   import { llmConsole } from '$lib/stores/llmConsole';
-  import { effectiveRole, hasPermission } from '$lib/stores/session';
-  import UIStateView from '$lib/components/lcars/UIStateView.svelte';
+  import { effectiveRole } from '$lib/stores/session';
+  import { hasPermission } from '$lib/stores/capabilities';
+  import { credentials, credentialSummary } from '$lib/stores/credentials';
+  import { indexHealth } from '$lib/stores/indexHealth';
+  import { policyState } from '$lib/stores/policy';
+  import { auditStore } from '$lib/stores/audit';
+  import { navigation, type ShellSurface } from '$lib/stores/navigation';
   import type { LlmProvider } from '$lib/stores/llmConsole';
-  import type { DorItemState } from '$lib/stores/dor';
+  import type { DorItemState, EffortBand } from '$lib/stores/dor';
 
   // Ephemeral LLM prompt — never persisted to store or storage.
   let llmPrompt = $state('Draft a concise PM review summary for the selected ticket.');
@@ -16,7 +21,17 @@
   const ticketList = ticketQueue.list;
   const activeTicketKey = ticketQueue.activeKey;
   const scaffold = dorStore.scaffold;
+  const scaffoldList = dorStore.scaffolds;
+  const auditReport = auditStore.report;
+  const auditTimeline = auditStore.timeline;
   const llmResult = llmConsole.result;
+  const activeSurface = navigation.activeSurface;
+
+  let criteriaInput = $state('');
+  let effortBand = $state<EffortBand>('medium');
+  let effortPoints = $state('');
+  let effortConfidence = $state('80');
+  let effortRationale = $state('');
 
   const dorStateLabel: Record<DorItemState, string> = {
     complete: 'Complete',
@@ -41,21 +56,193 @@
     await dorStore.setItemStatus(activeKey, itemId, newDone);
   }
 
+  async function openSurface(surface: ShellSurface) {
+    await navigation.activate(surface);
+  }
+
+  async function refreshTicketsWorkflow() {
+    await openSurface('tickets');
+  }
+
+  async function openSelectedScaffold() {
+    if (!$activeTicketKey) return;
+    await openSurface('scaffolds');
+  }
+
+  async function createScaffoldForActiveTicket() {
+    if (!$activeTicketKey) return;
+    await dorStore.create($activeTicketKey);
+  }
+
+  async function saveAcceptanceCriteria() {
+    if (!$activeTicketKey) return;
+    const parsed = criteriaInput
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    await dorStore.setAcceptanceCriteria($activeTicketKey, parsed);
+  }
+
+  async function saveEffortEstimate() {
+    if (!$activeTicketKey) return;
+    const parsedPoints = effortPoints.trim() ? Number(effortPoints.trim()) : null;
+    const parsedConfidence = Number(effortConfidence.trim());
+
+    await dorStore.setEffortEstimate($activeTicketKey, {
+      band: effortBand,
+      story_points: Number.isFinite(parsedPoints as number) ? parsedPoints : null,
+      confidence: Number.isFinite(parsedConfidence) ? Math.max(0, Math.min(100, parsedConfidence)) : 80,
+      rationale: effortRationale.trim() ? effortRationale.trim() : null,
+    });
+  }
+
+  async function refreshScaffoldsWorkflow() {
+    await openSurface('scaffolds');
+    await dorStore.list();
+  }
+
+  async function runAuditCheck() {
+    await openSurface('audit');
+  }
+
   const canOperateTickets = $derived(hasPermission($effectiveRole, 'request_ticket_review'));
   const canInvokeLlm = $derived(hasPermission($effectiveRole, 'invoke_llm'));
+  const canViewAudit = $derived(hasPermission($effectiveRole, 'view_audit_log'));
 
   onMount(() => {
     ticketQueue.refresh();
+    dorStore.init();
   });
 </script>
 
 <section class="command-deck">
+  <!-- ── Command Workflow Panel ─────────────────────────────────────────── -->
+  <article class="panel command-panel">
+    <header class="panel-header">
+      <p class="lcars-label">Command Workflow</p>
+      <h2>Operations Console</h2>
+    </header>
+
+    <div class="command-status-grid">
+      <div>
+        <p class="lcars-label">Role</p>
+        <p class="status-value">{$effectiveRole}</p>
+      </div>
+      <div>
+        <p class="lcars-label">Navigation Context</p>
+        <p class="status-value">{$activeSurface}</p>
+      </div>
+      <div>
+        <p class="lcars-label">Credential Health</p>
+        <p class="status-value">
+          {#if $credentials.status === 'success'}
+            {$credentialSummary.healthy} / {$credentialSummary.total}
+          {:else if $credentials.status === 'loading'}
+            loading
+          {:else}
+            unavailable
+          {/if}
+        </p>
+      </div>
+      <div>
+        <p class="lcars-label">Index Reachability</p>
+        <p class="status-value">
+          {#if $indexHealth.status === 'success'}
+            {$indexHealth.data.reachability}
+          {:else if $indexHealth.status === 'loading'}
+            loading
+          {:else}
+            unavailable
+          {/if}
+        </p>
+      </div>
+      <div>
+        <p class="lcars-label">Policy</p>
+        <p class="status-value">
+          {#if $policyState.status === 'success'}
+            rbac_enforced
+          {:else if $policyState.status === 'loading'}
+            loading
+          {:else}
+            unavailable
+          {/if}
+        </p>
+      </div>
+    </div>
+
+    <div class="command-actions">
+      <button type="button" onclick={() => openSurface('tickets')}>Open Ticket Queue</button>
+      <button type="button" onclick={() => openSurface('scaffolds')}>Open Scaffolds</button>
+      <button type="button" onclick={() => openSurface('integrations')}>Open Integrations</button>
+      <button type="button" onclick={() => openSurface('audit')}>Run Audit Check</button>
+    </div>
+  </article>
+
+  <!-- ── Audit Workflow Panel ───────────────────────────────────────────── -->
+  <article class="panel audit-panel">
+    <header class="panel-header">
+      <p class="lcars-label">Audit Workflow</p>
+      <h2>Integrity & Timeline</h2>
+    </header>
+
+    <div class="command-actions">
+      <button type="button" onclick={runAuditCheck} disabled={!canViewAudit}>Run Integrity Check</button>
+    </div>
+
+    {#if !canViewAudit}
+      <p class="lcars-label status-warn">Read-only audit verification is unavailable for current role.</p>
+    {/if}
+
+    {#if $auditReport.status === 'loading'}
+      <p class="lcars-label">Verifying audit chain…</p>
+    {:else if $auditReport.status === 'empty'}
+      <p class="lcars-label">No audit verification run yet.</p>
+    {:else if $auditReport.status === 'error'}
+      <p class="lcars-label status-err">{$auditReport.message}</p>
+    {:else if $auditReport.status === 'permission_denied'}
+      <p class="lcars-label status-warn">{$auditReport.message}</p>
+    {:else if $auditReport.status === 'success'}
+      <div class="audit-summary {$auditReport.data.ok ? 'audit-summary--ok' : 'audit-summary--warn'}">
+        <p class="lcars-label">
+          {$auditReport.data.ok ? 'Integrity verified' : 'Integrity degraded'}
+        </p>
+        <p>Chained entries: {$auditReport.data.chained_entries} / {$auditReport.data.total_entries}</p>
+        {#if !$auditReport.data.ok}
+          <p>First invalid line: {$auditReport.data.first_invalid_line ?? 'unknown'}</p>
+          <p>Reason: {$auditReport.data.reason ?? 'unknown reason'}</p>
+        {/if}
+      </div>
+    {/if}
+
+    <p class="lcars-label">Verification Timeline</p>
+    {#if $auditTimeline.length === 0}
+      <p class="lcars-label">No verification events yet.</p>
+    {:else}
+      <div class="audit-timeline">
+        {#each $auditTimeline as event}
+          <div class="audit-timeline__item audit-timeline__item--{event.status}">
+            <div>
+              <strong>{event.status}</strong>
+              <p>{event.summary}</p>
+            </div>
+            <small>{event.checkedAt}</small>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </article>
+
   <!-- ── Ticket Queue Panel ─────────────────────────────────────────────── -->
   <article class="panel ticket-panel">
     <header class="panel-header">
       <p class="lcars-label">Ticket Review Queue</p>
       <h2>Operational Focus</h2>
     </header>
+
+    <div class="command-actions">
+      <button type="button" onclick={refreshTicketsWorkflow}>Refresh Queue</button>
+      <button type="button" onclick={openSelectedScaffold} disabled={!$activeTicketKey}>Open Selected Scaffold</button>
+    </div>
 
     {#if $ticketList.status === 'loading'}
       <p class="lcars-label">Loading…</p>
@@ -99,6 +286,15 @@
       </h2>
     </header>
 
+    <div class="command-actions">
+      <button type="button" onclick={refreshScaffoldsWorkflow}>Refresh Scaffolds</button>
+      <button type="button" onclick={createScaffoldForActiveTicket} disabled={!canOperateTickets || !$activeTicketKey}>Create Scaffold</button>
+    </div>
+
+    {#if !canOperateTickets}
+      <p class="lcars-label status-warn">Read-only access: scaffold mutations require Operator or Admin role.</p>
+    {/if}
+
     {#if $scaffold.status === 'loading'}
       <p class="lcars-label">Loading scaffold…</p>
     {:else if $scaffold.status === 'empty'}
@@ -141,6 +337,62 @@
           {/each}
         </ol>
       {/if}
+
+      <label class="lcars-label" for="criteria-input">Acceptance Criteria (one per line)</label>
+      <textarea id="criteria-input" rows="4" bind:value={criteriaInput} disabled={!canOperateTickets}></textarea>
+      <button type="button" onclick={saveAcceptanceCriteria} disabled={!canOperateTickets || !$activeTicketKey}>Save Acceptance Criteria</button>
+
+      <div class="effort-grid">
+        <div>
+          <label class="lcars-label" for="effort-band">Effort Band</label>
+          <select id="effort-band" bind:value={effortBand} disabled={!canOperateTickets}>
+            <option value="trivial">Trivial</option>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+            <option value="x_large">XLarge</option>
+          </select>
+        </div>
+        <div>
+          <label class="lcars-label" for="effort-points">Story Points</label>
+          <input id="effort-points" type="number" min="0" step="0.5" bind:value={effortPoints} disabled={!canOperateTickets} />
+        </div>
+        <div>
+          <label class="lcars-label" for="effort-confidence">Confidence (0-100)</label>
+          <input id="effort-confidence" type="number" min="0" max="100" bind:value={effortConfidence} disabled={!canOperateTickets} />
+        </div>
+      </div>
+      <label class="lcars-label" for="effort-rationale">Rationale</label>
+      <textarea id="effort-rationale" rows="2" bind:value={effortRationale} disabled={!canOperateTickets}></textarea>
+      <button type="button" onclick={saveEffortEstimate} disabled={!canOperateTickets || !$activeTicketKey}>Save Effort Estimate</button>
+
+      {#if view.effortEstimate}
+        <p class="lcars-label">Current Estimate: {view.effortEstimate.band} ({view.effortEstimate.story_points ?? 'n/a'} pts, {view.effortEstimate.confidence}% confidence)</p>
+      {/if}
+      <p class="lcars-label">Updated: {view.updatedAt}</p>
+    {/if}
+
+    <p class="lcars-label">Recent Scaffolds</p>
+    {#if $scaffoldList.status === 'loading'}
+      <p class="lcars-label">Loading scaffold index…</p>
+    {:else if $scaffoldList.status === 'empty'}
+      <p class="lcars-label">No scaffolds created yet.</p>
+    {:else if $scaffoldList.status === 'error'}
+      <p class="lcars-label status-err">{$scaffoldList.message}</p>
+    {:else if $scaffoldList.status === 'permission_denied'}
+      <p class="lcars-label status-warn">{$scaffoldList.message}</p>
+    {:else if $scaffoldList.status === 'success'}
+      <div class="ticket-list">
+        {#each $scaffoldList.data as item}
+          <button class="ticket-card" type="button" onclick={() => ticketQueue.select(item.ticketKey)}>
+            <div class="ticket-card__top">
+              <strong>{item.ticketKey}</strong>
+              <span class="priority-chip priority-medium">{Math.round(item.completionRatio * 100)}% DoR</span>
+            </div>
+            <p>{item.acceptanceCriteria.length} acceptance criteria</p>
+          </button>
+        {/each}
+      </div>
     {/if}
   </article>
 
@@ -226,6 +478,74 @@
 
   .panel-header h2 {
     font-size: var(--text-lg);
+  }
+
+  .command-panel {
+    grid-column: 1 / -1;
+  }
+
+  .command-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .status-value {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    text-transform: uppercase;
+  }
+
+  .command-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .audit-summary {
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .audit-summary--ok {
+    border-color: var(--color-lcars-green);
+  }
+
+  .audit-summary--warn {
+    border-color: var(--color-lcars-amber);
+  }
+
+  .audit-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .audit-timeline__item {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+  }
+
+  .audit-timeline__item--ok {
+    border-left: 3px solid var(--color-lcars-green);
+  }
+
+  .audit-timeline__item--degraded,
+  .audit-timeline__item--error,
+  .audit-timeline__item--permission_denied {
+    border-left: 3px solid var(--color-lcars-amber);
+  }
+
+  .effort-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
   }
 
   .ticket-panel {
@@ -412,6 +732,14 @@
 
   @media (max-width: 1200px) {
     .command-deck {
+      grid-template-columns: 1fr;
+    }
+
+    .command-status-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .effort-grid {
       grid-template-columns: 1fr;
     }
 

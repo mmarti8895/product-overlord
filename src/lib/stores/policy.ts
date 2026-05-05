@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { invoke, type UIState, loading, success, err, empty } from '$lib/tauri/invoke';
-import { effectiveRole, hasPermission } from '$lib/stores/session';
+import { effectiveRole } from '$lib/stores/session';
 import type { Role } from '$lib/stores/session';
 
 // ─── Store ────────────────────────────────────────────────────────────────────
