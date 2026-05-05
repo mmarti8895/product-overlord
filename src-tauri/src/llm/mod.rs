@@ -5,6 +5,7 @@ use crate::domain::llm::{
     LlmInvocationRequest, LlmInvocationResponse, LlmProvider, LlmProviderConfig,
 };
 use crate::errors::AppError;
+use crate::sync_utils::lock_or_internal;
 
 const PROMPT_MAX_LEN: usize = 16_000;
 
@@ -117,18 +118,17 @@ impl LlmGateway {
             };
         }
 
-        self.configs
-            .lock()
-            .unwrap()
+        lock_or_internal(&self.configs, "llm_gateway")?
             .insert(config.provider, config.clone());
 
         Ok(config)
     }
 
-    pub fn list_provider_configs(&self) -> Vec<LlmProviderConfig> {
-        let mut out: Vec<LlmProviderConfig> = self.configs.lock().unwrap().values().cloned().collect();
+    pub fn list_provider_configs(&self) -> Result<Vec<LlmProviderConfig>, AppError> {
+        let mut out: Vec<LlmProviderConfig> =
+            lock_or_internal(&self.configs, "llm_gateway")?.values().cloned().collect();
         out.sort_by_key(|cfg| cfg.provider.display_name());
-        out
+        Ok(out)
     }
 
     pub fn invoke(&self, request: LlmInvocationRequest) -> Result<LlmInvocationResponse, AppError> {
@@ -142,10 +142,7 @@ impl LlmGateway {
             )));
         }
 
-        let config = self
-            .configs
-            .lock()
-            .unwrap()
+        let config = lock_or_internal(&self.configs, "llm_gateway")?
             .get(&request.provider)
             .cloned()
             .ok_or_else(|| {
@@ -199,7 +196,7 @@ mod tests {
             })
             .unwrap();
 
-        let listed = gateway.list_provider_configs();
+        let listed = gateway.list_provider_configs().unwrap();
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].provider, LlmProvider::OpenAi);
     }

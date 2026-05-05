@@ -11,7 +11,6 @@ echo "Creating issues in dependency order..."
 # ─── SLICE 1 (no blockers) ───────────────────────────────────────────────────
 ISSUE_1=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Global UI State Envelope + Tauri Invocation Helper" \
   --body "## What to build
 
@@ -35,13 +34,12 @@ No panel or component may manage its own ad-hoc loading flag outside this envelo
 ## Blocked by
 
 None — can start immediately" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 1 → issue #$ISSUE_1"
 
 # ─── SLICE 6 (parallel, needs Slice 1 only) ──────────────────────────────────
 ISSUE_6=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Index Store Health Panel" \
   --body "## What to build
 
@@ -58,13 +56,12 @@ Wire the Index Store telemetry card in the sidebar to the real index store healt
 ## Blocked by
 
 - #$ISSUE_1 (Global UI State Envelope + Tauri Invocation Helper)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 6 → issue #$ISSUE_6"
 
 # ─── SLICE 2 (needs Slice 1) ─────────────────────────────────────────────────
 ISSUE_2=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Session Store + Header Wiring" \
   --body "## What to build
 
@@ -84,13 +81,12 @@ This store is the dependency of every other module that gates behavior on role o
 ## Blocked by
 
 - #$ISSUE_1 (Global UI State Envelope + Tauri Invocation Helper)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 2 → issue #$ISSUE_2"
 
 # ─── SLICE 4 (needs Slice 2) ─────────────────────────────────────────────────
 ISSUE_4=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Policy Panel Binding" \
   --body "## What to build
 
@@ -108,13 +104,12 @@ Replace the hardcoded Policy Status card in the sidebar with a live query to the
 ## Blocked by
 
 - #$ISSUE_2 (Session Store + Header Wiring)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 4 → issue #$ISSUE_4"
 
 # ─── SLICE 3 (needs Slice 2) ─────────────────────────────────────────────────
 ISSUE_3=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Permission Error Handler + Suggest-Only Enforcement" \
   --body "## What to build
 
@@ -133,13 +128,12 @@ Register a global error interceptor at the application shell level. All Tauri co
 ## Blocked by
 
 - #$ISSUE_2 (Session Store + Header Wiring)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 3 → issue #$ISSUE_3"
 
 # ─── SLICE 5 (needs Slice 3) ─────────────────────────────────────────────────
 ISSUE_5=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Credential Health Panel" \
   --body "## What to build
 
@@ -159,13 +153,12 @@ Wire the Credential Health sidebar panel to the credential list and mutation com
 ## Blocked by
 
 - #$ISSUE_3 (Permission Error Handler + Suggest-Only Enforcement)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 5 → issue #$ISSUE_5"
 
 # ─── SLICE 7 (needs Slice 3) ─────────────────────────────────────────────────
 ISSUE_7=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "Ticket Queue Provider" \
   --body "## What to build
 
@@ -184,13 +177,12 @@ Replace the hardcoded ticket list in the Ticket Queue panel with a typed stub pr
 ## Blocked by
 
 - #$ISSUE_3 (Permission Error Handler + Suggest-Only Enforcement)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 7 → issue #$ISSUE_7"
 
 # ─── SLICE 9 (needs Slice 3) ─────────────────────────────────────────────────
 ISSUE_9=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "LLM Console Module" \
   --body "## What to build
 
@@ -210,13 +202,12 @@ Wire the LLM Console panel to \`cmd_invoke_llm\`. All responses must be tagged \
 ## Blocked by
 
 - #$ISSUE_3 (Permission Error Handler + Suggest-Only Enforcement)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 9 → issue #$ISSUE_9"
 
 # ─── SLICE 8 (needs Slice 7) ─────────────────────────────────────────────────
 ISSUE_8=$(gh issue create \
   --repo "$REPO" \
-  --label "$LABEL" \
   --title "DoR Evaluation Adapter + Checklist Panel" \
   --body "## What to build
 
@@ -235,7 +226,7 @@ Implement the DoR Evaluation Adapter — a module that maps raw ticket scaffold 
 ## Blocked by
 
 - #$ISSUE_7 (Ticket Queue Provider)" \
-  --json number --jq '.number')
+  | awk -F'/' '{print $NF}')
 echo "Created Slice 8 → issue #$ISSUE_8"
 
 echo ""

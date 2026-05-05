@@ -45,7 +45,7 @@ pub fn cmd_list_ticket_scaffolds(
     state: State<'_, AppState>,
 ) -> Result<Vec<TicketScaffold>, AppError> {
     require_permission(&state, Permission::ViewJiraTickets, "list_ticket_scaffolds")?;
-    Ok(state.scaffold_store.list())
+    state.scaffold_store.list()
 }
 
 #[tauri::command]

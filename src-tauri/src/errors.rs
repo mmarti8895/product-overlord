@@ -26,6 +26,10 @@ pub enum AppError {
     #[error("storage error: {0}")]
     Storage(String),
 
+    /// A rate-limit policy was exceeded for the requested command.
+    #[error("rate limit exceeded: {0}")]
+    RateLimitExceeded(String),
+
     /// A provider or integration is referenced but not yet configured.
     #[error("not configured: {0}")]
     NotConfigured(String),

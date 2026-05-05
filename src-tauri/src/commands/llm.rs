@@ -52,7 +52,7 @@ pub fn cmd_list_llm_provider_configs(
         "list_llm_provider_configs",
     )?;
 
-    Ok(state.llm_gateway.list_provider_configs())
+    state.llm_gateway.list_provider_configs()
 }
 
 #[tauri::command]
@@ -61,6 +61,7 @@ pub fn cmd_invoke_llm(
     request: LlmInvocationRequest,
 ) -> Result<LlmInvocationResponse, AppError> {
     require_permission(&state, Permission::InvokeLlm, "invoke_llm")?;
+    state.rate_limiter.check("cmd_invoke_llm")?;
 
     let provider_name = request.provider.display_name().to_string();
     let response = state.llm_gateway.invoke(request)?;

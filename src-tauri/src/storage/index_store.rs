@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::AppError;
 use crate::storage::path_policy::{app_storage_root, enforce_storage_root};
+use crate::sync_utils::lock_or_internal;
 
 const INDEX_URI_MAX_LEN: usize = 1024;
 
@@ -71,7 +72,7 @@ impl IndexStore {
         let target_uri = if let Some(uri) = requested_uri {
             normalise_uri(&uri)?
         } else {
-            let state = self.state.lock().unwrap();
+            let state = lock_or_internal(&self.state, "index_store")?;
             state.db_uri.clone()
         };
 
@@ -80,7 +81,7 @@ impl IndexStore {
         match probe_lancedb(&target_uri) {
             Ok(()) => {
                 let now = Utc::now();
-                let mut state = self.state.lock().unwrap();
+                let mut state = lock_or_internal(&self.state, "index_store")?;
                 state.db_uri = target_uri.clone();
                 state.initialized = true;
                 state.last_checked_at = Some(now);
@@ -97,7 +98,7 @@ impl IndexStore {
             Err(err) => {
                 let now = Utc::now();
                 let message = err.frontend_message();
-                let mut state = self.state.lock().unwrap();
+                let mut state = lock_or_internal(&self.state, "index_store")?;
                 state.db_uri = target_uri;
                 state.initialized = false;
                 state.last_checked_at = Some(now);
@@ -107,16 +108,16 @@ impl IndexStore {
         }
     }
 
-    pub fn health_check(&self) -> IndexStoreHealth {
+    pub fn health_check(&self) -> Result<IndexStoreHealth, AppError> {
         let (db_uri, initialized) = {
-            let state = self.state.lock().unwrap();
+            let state = lock_or_internal(&self.state, "index_store")?;
             (state.db_uri.clone(), state.initialized)
         };
 
         let now = Utc::now();
         let reachable = probe_lancedb(&db_uri).is_ok();
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock_or_internal(&self.state, "index_store")?;
         state.last_checked_at = Some(now);
         state.last_error = if reachable {
             None
@@ -124,18 +125,18 @@ impl IndexStore {
             Some("LanceDB connection probe failed".to_string())
         };
 
-        IndexStoreHealth {
+        Ok(IndexStoreHealth {
             db_uri,
             initialized,
             reachable,
             last_checked_at: now,
             last_error: state.last_error.clone(),
-        }
+        })
     }
 
-    pub fn current_health(&self) -> IndexStoreHealth {
+    pub fn current_health(&self) -> Result<IndexStoreHealth, AppError> {
         let now = Utc::now();
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock_or_internal(&self.state, "index_store")?;
 
         let checked_at = state.last_checked_at.unwrap_or(now);
 
@@ -143,13 +144,13 @@ impl IndexStore {
             state.last_checked_at = Some(checked_at);
         }
 
-        IndexStoreHealth {
+        Ok(IndexStoreHealth {
             db_uri: state.db_uri.clone(),
             initialized: state.initialized,
             reachable: false,
             last_checked_at: checked_at,
             last_error: state.last_error.clone(),
-        }
+        })
     }
 }
 
@@ -235,7 +236,7 @@ mod tests {
     #[test]
     fn new_store_is_uninitialized() {
         let store = IndexStore::new();
-        let health = store.current_health();
+        let health = store.current_health().unwrap();
 
         assert!(!health.initialized);
         assert!(!health.reachable);

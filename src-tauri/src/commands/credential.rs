@@ -66,7 +66,7 @@ pub fn cmd_delete_credential(
     // Capture metadata for audit before deletion
     let label = state
         .credential_store
-        .get(uuid)
+        .get(uuid)?
         .map(|c| c.label.clone())
         .unwrap_or_else(|| id.clone());
 
@@ -116,5 +116,5 @@ pub fn cmd_list_credentials(
     state: State<'_, AppState>,
 ) -> Result<Vec<IntegrationCredential>, AppError> {
     require_permission(&state, Permission::ViewCredentialList, "list_credentials")?;
-    Ok(state.credential_store.list())
+    state.credential_store.list()
 }

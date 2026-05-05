@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use crate::domain::audit::{AuditIntegrityReport, AuditLogEntry};
 use crate::errors::AppError;
 use crate::storage::path_policy::{app_storage_root, enforce_storage_root};
+use crate::sync_utils::lock_or_internal;
 
 const AUDIT_FILE_NAME: &str = "audit-log.jsonl";
 const CHAIN_VERSION: u8 = 1;
@@ -48,7 +49,7 @@ impl AuditStore {
     }
 
     pub fn append(&self, entry: &AuditLogEntry) -> Result<(), AppError> {
-        let _guard = self.write_lock.lock().unwrap();
+        let _guard = lock_or_internal(&self.write_lock, "audit_store")?;
 
         // SEC-203.4: confine the audit file to the app storage root.
         enforce_storage_root(&self.path, &self.allowed_root)?;

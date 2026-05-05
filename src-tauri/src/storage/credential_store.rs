@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::credential::{IntegrationCredential, Provider};
 use crate::errors::AppError;
+use crate::sync_utils::lock_or_internal;
 
 const SERVICE: &str = "com.productoverlord.app";
 
@@ -113,7 +114,7 @@ impl CredentialStore {
         // If keychain write fails, no metadata is registered.
         self.backend.store(&cred.id.to_string(), secret)?;
 
-        let mut map = self.credentials.lock().unwrap();
+        let mut map = lock_or_internal(&self.credentials, "credential_store")?;
         map.insert(cred.id, cred.clone());
         Ok(cred)
     }
@@ -122,7 +123,7 @@ impl CredentialStore {
     /// Returns an error if the id is not found.
     pub fn delete(&self, id: Uuid) -> Result<(), AppError> {
         {
-            let map = self.credentials.lock().unwrap();
+            let map = lock_or_internal(&self.credentials, "credential_store")?;
             if !map.contains_key(&id) {
                 return Err(AppError::Credential(format!("credential {id} not found")));
             }
@@ -132,7 +133,7 @@ impl CredentialStore {
         // so the operator can retry rather than ending up with an orphaned keychain entry.
         self.backend.delete(&id.to_string())?;
 
-        let mut map = self.credentials.lock().unwrap();
+        let mut map = lock_or_internal(&self.credentials, "credential_store")?;
         map.remove(&id);
         Ok(())
     }
@@ -145,7 +146,7 @@ impl CredentialStore {
     /// This method never surfaces the secret — it only confirms reachability.
     pub fn health_check(&self, id: Uuid) -> Result<bool, AppError> {
         {
-            let map = self.credentials.lock().unwrap();
+            let map = lock_or_internal(&self.credentials, "credential_store")?;
             if !map.contains_key(&id) {
                 return Err(AppError::Credential(format!("credential {id} not found")));
             }
@@ -162,18 +163,18 @@ impl CredentialStore {
     }
 
     /// Return all credential metadata records. Secrets are never included.
-    pub fn list(&self) -> Vec<IntegrationCredential> {
-        let map = self.credentials.lock().unwrap();
+    pub fn list(&self) -> Result<Vec<IntegrationCredential>, AppError> {
+        let map = lock_or_internal(&self.credentials, "credential_store")?;
         let mut items: Vec<_> = map.values().cloned().collect();
         // Stable order: newest first
         items.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        items
+        Ok(items)
     }
 
     /// Retrieve a single credential metadata record by id.
-    pub fn get(&self, id: Uuid) -> Option<IntegrationCredential> {
-        let map = self.credentials.lock().unwrap();
-        map.get(&id).cloned()
+    pub fn get(&self, id: Uuid) -> Result<Option<IntegrationCredential>, AppError> {
+        let map = lock_or_internal(&self.credentials, "credential_store")?;
+        Ok(map.get(&id).cloned())
     }
 }
 
@@ -255,7 +256,7 @@ mod tests {
         let store = CredentialStore::with_backend(MockBackend::new());
         let _ = store.add(Provider::Jira, "j".to_string(), "mytoken", None).unwrap();
         // health_check confirms the backend has it
-        let id = store.list()[0].id;
+        let id = store.list().unwrap()[0].id;
         assert!(store.health_check(id).unwrap());
         let _ = backend; // suppress unused warning
     }
@@ -267,13 +268,13 @@ mod tests {
         let store = make_store();
         store.add(Provider::Jira, "a".to_string(), "s1", None).unwrap();
         store.add(Provider::GitHub, "b".to_string(), "s2", None).unwrap();
-        assert_eq!(store.list().len(), 2);
+        assert_eq!(store.list().unwrap().len(), 2);
     }
 
     #[test]
     fn list_is_empty_initially() {
         let store = make_store();
-        assert!(store.list().is_empty());
+        assert!(store.list().unwrap().is_empty());
     }
 
     // ── delete ───────────────────────────────────────────────────────────────
@@ -283,8 +284,8 @@ mod tests {
         let store = make_store();
         let cred = store.add(Provider::Jira, "j".to_string(), "tok", None).unwrap();
         store.delete(cred.id).unwrap();
-        assert!(store.get(cred.id).is_none());
-        assert!(store.list().is_empty());
+        assert!(store.get(cred.id).unwrap().is_none());
+        assert!(store.list().unwrap().is_empty());
     }
 
     #[test]
@@ -332,7 +333,7 @@ mod tests {
             map.insert(fake.id, fake.clone());
             // Health-check via the id we just inserted
             drop(map);
-            let id = store.list()[0].id;
+            let id = store.list().unwrap()[0].id;
             assert!(!store.health_check(id).unwrap());
         }
     }

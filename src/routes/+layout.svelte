@@ -4,6 +4,8 @@
   import '../lib/styles/lcars.css';
   import AppShell from '../lib/components/lcars/AppShell.svelte';
   import UnlockModal from '../lib/components/lcars/UnlockModal.svelte';
+  import IntegrationHub from '../lib/components/lcars/IntegrationHub.svelte';
+  import { hub } from '../lib/stores/hub';
   import { session, effectiveRole, secondsRemaining } from '../lib/stores/session';
   import { indexHealth } from '../lib/stores/indexHealth';
   import { policyState, rbacEnforced } from '../lib/stores/policy';
@@ -91,7 +93,6 @@
 {#snippet top()}
   <div class="rail-top">
     <div class="rail-top__left lcars-elbow">
-      <h1>Autonomous AI PM</h1>
     </div>
     <div class="rail-top__center">
       <div class="lcars-pill is-orange">Suggest-Only Mode</div>
@@ -109,7 +110,11 @@
   <div class="rail-nav">
     <p class="lcars-label rail-nav__header">Navigation</p>
     {#each navItems as item}
-      <button class="rail-nav__item" type="button">
+      <button
+        class="rail-nav__item"
+        type="button"
+        onclick={() => { if (item.value === 'integrations') hub.open('llm'); }}
+      >
         <span>{item.label}</span>
       </button>
     {/each}
@@ -219,6 +224,8 @@
   {@render children()}
 </AppShell>
 
+<IntegrationHub />
+
 <style>
   .rail-top {
     display: grid;
@@ -237,11 +244,6 @@
     padding: var(--space-3) var(--space-4);
     min-height: 72px;
     box-shadow: var(--shadow-inset);
-  }
-
-  .rail-top__left h1 {
-    font-size: var(--text-xl);
-    line-height: var(--leading-tight);
   }
 
   .rail-top__center {

@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::domain::scaffolding::{EffortEstimate, TicketScaffold};
 use crate::errors::AppError;
+use crate::sync_utils::lock_or_internal;
 
 const TICKET_KEY_MAX_LEN: usize = 64;
 const ACCEPTANCE_CRITERIA_MAX_ITEMS: usize = 30;
@@ -28,7 +29,7 @@ impl ScaffoldStore {
     pub fn create(&self, ticket_key: String) -> Result<TicketScaffold, AppError> {
         let key = normalize_ticket_key(&ticket_key)?;
 
-        let mut guard = self.scaffolds.lock().unwrap();
+        let mut guard = lock_or_internal(&self.scaffolds, "scaffold_store")?;
         if guard.contains_key(&key) {
             return Err(AppError::Validation(format!(
                 "ticket scaffold already exists for {key}"
@@ -42,13 +43,14 @@ impl ScaffoldStore {
 
     pub fn get(&self, ticket_key: String) -> Result<Option<TicketScaffold>, AppError> {
         let key = normalize_ticket_key(&ticket_key)?;
-        Ok(self.scaffolds.lock().unwrap().get(&key).cloned())
+        Ok(lock_or_internal(&self.scaffolds, "scaffold_store")?.get(&key).cloned())
     }
 
-    pub fn list(&self) -> Vec<TicketScaffold> {
-        let mut out: Vec<TicketScaffold> = self.scaffolds.lock().unwrap().values().cloned().collect();
+    pub fn list(&self) -> Result<Vec<TicketScaffold>, AppError> {
+        let mut out: Vec<TicketScaffold> =
+            lock_or_internal(&self.scaffolds, "scaffold_store")?.values().cloned().collect();
         out.sort_by(|a, b| a.ticket_key.cmp(&b.ticket_key));
-        out
+        Ok(out)
     }
 
     pub fn set_dor_item_status(
@@ -58,7 +60,7 @@ impl ScaffoldStore {
         done: bool,
     ) -> Result<TicketScaffold, AppError> {
         let key = normalize_ticket_key(&ticket_key)?;
-        let mut guard = self.scaffolds.lock().unwrap();
+        let mut guard = lock_or_internal(&self.scaffolds, "scaffold_store")?;
         let scaffold = guard
             .get_mut(&key)
             .ok_or_else(|| AppError::NotConfigured(format!("ticket scaffold not found: {key}")))?;
@@ -104,7 +106,7 @@ impl ScaffoldStore {
         }
 
         let key = normalize_ticket_key(&ticket_key)?;
-        let mut guard = self.scaffolds.lock().unwrap();
+        let mut guard = lock_or_internal(&self.scaffolds, "scaffold_store")?;
         let scaffold = guard
             .get_mut(&key)
             .ok_or_else(|| AppError::NotConfigured(format!("ticket scaffold not found: {key}")))?;
@@ -135,7 +137,7 @@ impl ScaffoldStore {
         }
 
         let key = normalize_ticket_key(&ticket_key)?;
-        let mut guard = self.scaffolds.lock().unwrap();
+        let mut guard = lock_or_internal(&self.scaffolds, "scaffold_store")?;
         let scaffold = guard
             .get_mut(&key)
             .ok_or_else(|| AppError::NotConfigured(format!("ticket scaffold not found: {key}")))?;

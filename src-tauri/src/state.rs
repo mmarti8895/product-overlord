@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
 use crate::llm::LlmGateway;
+use crate::security::rate_limit::{RateLimiter, SingleFlight};
 use crate::session::SessionManager;
 use crate::storage::audit_store::AuditStore;
 use crate::storage::credential_store::CredentialStore;
@@ -22,6 +23,8 @@ pub struct AppState {
     pub llm_gateway: LlmGateway,
     pub scaffold_store: ScaffoldStore,
     pub audit_store: AuditStore,
+    pub rate_limiter: RateLimiter,
+    pub index_init_flight: SingleFlight,
 }
 
 impl AppState {
@@ -33,6 +36,8 @@ impl AppState {
             llm_gateway: LlmGateway::new(),
             scaffold_store: ScaffoldStore::new(),
             audit_store: AuditStore::new(),
+            rate_limiter: RateLimiter::new(),
+            index_init_flight: SingleFlight::new(),
         }
     }
 }

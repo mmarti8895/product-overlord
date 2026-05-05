@@ -19,7 +19,8 @@ pub fn cmd_initialize_index_store(
         Permission::TriggerRepositoryIndex,
         "initialize_index_store",
     )?;
-
+    let _flight = state.index_init_flight.try_acquire()?;
+    state.rate_limiter.check("cmd_initialize_index_store")?;
     match state.index_store.initialize(db_uri.clone()) {
         Ok(health) => {
             append_user_audit(
@@ -51,7 +52,7 @@ pub fn cmd_get_index_store_health(
         "get_index_store_health",
     )?;
 
-    Ok(state.index_store.current_health())
+    state.index_store.current_health()
 }
 
 /// Probe LanceDB connectivity and return a fresh health snapshot.
@@ -64,6 +65,7 @@ pub fn cmd_check_index_store_health(
         Permission::ViewRepositoryIndex,
         "check_index_store_health",
     )?;
+    state.rate_limiter.check("cmd_check_index_store_health")?;
 
-    Ok(state.index_store.health_check())
+    state.index_store.health_check()
 }
