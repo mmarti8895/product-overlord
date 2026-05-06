@@ -1,6 +1,6 @@
-# product-overlord
+# Product Overlord
 
-An autonomous AI product manager desktop app. product-overlord monitors your Jira board, analyses ticket quality against your Definition of Ready, invokes LLMs to suggest improvements, and surfaces actionable insights — all running locally on your machine with no cloud dependency.
+An autonomous AI product manager desktop app. Product Overlord monitors your Jira board, analyses ticket quality against your Definition of Ready, invokes LLMs to suggest improvements, and surfaces actionable insights — all running locally on your machine with no cloud dependency.
 
 Built with **Tauri 2 + Rust** backend and a **SvelteKit + TypeScript** frontend styled in an LCARS aesthetic.
 
