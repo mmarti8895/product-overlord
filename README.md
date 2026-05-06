@@ -3,10 +3,11 @@
 An autonomous AI product manager desktop app. product-overlord monitors your Jira board, analyses ticket quality against your Definition of Ready, invokes LLMs to suggest improvements, and surfaces actionable insights — all running locally on your machine with no cloud dependency.
 
 Built with **Tauri 2 + Rust** backend and a **SvelteKit + TypeScript** frontend styled in an LCARS aesthetic.
+
+## To Turn this into the true Project Overlord, worthy of Ainz Ooal Gown, the Supreme One, the Sorcerer King of the Tomb of Nazarick, the Guardian and Ruler of all the Great Tomb of Nazarick, the Master of all the Floor Guardians, the Ultimate One, the Overlord of Darkness, the Sorcerer King, and the Lord of Death, I need contributions from fellow dark adventurers in the open source community. If you have ideas, code, or feedback to make this app more powerful and fearsome, submit an issue or a pull request!
 ---
 
 ![Product Overlord](static/product-overlord.png)
-
 ---
 
 ## What it does
